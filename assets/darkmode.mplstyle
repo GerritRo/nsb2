@@ -1,0 +1,69 @@
+# Dark mode style sheet
+
+# Color cycle for darkmode plots
+axes.prop_cycle: cycler('color', ['FFFFFF','8DD3C7','FEFFB3','BFBBD9','FA8174','81B1D2'])
+
+# Set black background default line colors to white.
+lines.color: white
+patch.edgecolor: white
+text.color: white
+
+axes.edgecolor: white
+axes.labelcolor: white
+xtick.color: white
+ytick.color: white
+grid.color: white
+
+# Faces and edges black
+axes.facecolor: black
+figure.facecolor: black
+figure.edgecolor: black
+savefig.facecolor: black
+savefig.edgecolor: black
+
+### Boxplots
+boxplot.boxprops.color: white
+boxplot.capprops.color: white
+boxplot.flierprops.color: white
+boxplot.flierprops.markeredgecolor: white
+boxplot.whiskerprops.color: white
+
+### Figure styles
+figure.dpi: 300
+
+# Set x axis
+xtick.direction : in
+xtick.major.size : 3
+xtick.major.width : 0.5
+xtick.minor.size : 1.5
+xtick.minor.width : 0.5
+xtick.minor.visible : True
+xtick.top : True
+
+# Set y axis
+ytick.direction : in
+ytick.major.size : 3
+ytick.major.width : 0.5
+ytick.minor.size : 1.5
+ytick.minor.width : 0.5
+ytick.minor.visible : True
+ytick.right : True
+
+# Set line widths
+axes.linewidth : 0.5
+grid.linewidth : 0.5
+lines.linewidth : 1.
+
+# Remove legend frame
+legend.frameon : False
+
+# Always save as 'tight'
+savefig.bbox : tight
+savefig.pad_inches : 0.05
+
+# Use serif fonts
+# font.serif : Times
+font.family : serif
+mathtext.fontset : dejavuserif
+font.size: 14
+legend.fontsize: 12
