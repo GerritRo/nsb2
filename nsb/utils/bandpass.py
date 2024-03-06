@@ -11,10 +11,10 @@ def p_spline(file):
     return s
 
 def HESS1U():
-    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/hess1u.csv')
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/hess1u.csv')
 
 def GaiaDR3():
-    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/g_passband.csv')
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/g_passband.csv')
 
 def JohnsonV():
-    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/johnson_v.csv')
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/johnson_v.csv')

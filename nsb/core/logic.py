@@ -172,13 +172,18 @@ class Scattering(Layer):
     
     @utils.reduce_rays
     def forward(self, frame, f_rays):
-        s_args = self.s_args(frame, f_rays, None)
-        pos, rho = utils.hist_sample(self.f_hist, s_args, self.N)
-        b_rays = f_rays.directional_offset_by(pos, rho)
-        
-        t_args = self.t_args(frame, f_rays[b_rays.parent], b_rays)
-        return (b_rays * 
-                self.transmission(*t_args))
+        if self.N >1:
+            s_args = self.s_args(frame, f_rays, None)
+            pos, rho = utils.hist_sample(self.f_hist, s_args, self.N)
+            b_rays = f_rays.directional_offset_by(pos, rho)
+            
+            t_args = self.t_args(frame, f_rays[b_rays.parent], b_rays)
+            return (b_rays * 
+                    self.transmission(*t_args))
+        else:
+            t_args = self.t_args(frame, f_rays, f_rays)
+            return (f_rays * 
+                    self.transmission(*t_args))
     
     @utils.reduce_rays
     def backward(self, frame, b_rays):
@@ -191,7 +196,6 @@ class Scattering(Layer):
             return (f_rays * 
                     self.transmission(*t_args))
         else:
-
             t_args = self.t_args(frame, b_rays, b_rays)
             return (b_rays * 
                     self.transmission(*t_args))

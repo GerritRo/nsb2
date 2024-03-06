@@ -5,7 +5,7 @@ import matplotlib as mpl
 
 from ctapipe.visualization import CameraDisplay
 
-ANA_BASE = '/home/gerritr/ECAP/nsb_simulation/nsb_refactor'
+ANA_BASE = '/home/gerritr/ECAP/nsb_simulation/nsb2'
 
 ### Define color palettes for different styles
 styles = {'dark': ANA_BASE + '/assets/darkmode.mplstyle',

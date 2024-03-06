@@ -58,8 +58,8 @@ def CT1_Standard():
     jons = moon.Jones2013(conf_jons)
 
     # Atmospheric Extinction:
-    atm_airglow = extinction.Masana2021(conf_masana)([glow])
-    atm_diffuse = extinction.Masana2021(conf_masana)([zodi, gbl])
+    atm_airglow = extinction.Masana2021({'gamma':0.5})([glow])
+    atm_diffuse = extinction.Masana2021({'gamma':0.75})([zodi, gbl])
     atm_stellar = extinction.Masana2021(conf_masana)([gaia, hipp])
 
     # Atmospheric Scattering:

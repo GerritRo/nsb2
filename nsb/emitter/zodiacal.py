@@ -12,7 +12,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 class Masana2021(DiffuseEmitter):
     def compile(self):
-        zod = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/leinert_zodiac.csv', delimiter=",")
+        zod = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/leinert_zodiac.csv', delimiter=",")
         fit_points = [zod[1:,0], zod[0,1:]]
         self.A = RegularGridInterpolator(points=fit_points, values=zod[1:,1:])
     

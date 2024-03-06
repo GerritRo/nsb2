@@ -34,7 +34,7 @@ class KS1991(Emitter):
     
 class Jones2013(Emitter):
     def compile(self):
-        self.rol = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/rolo.csv', delimiter=",")
+        self.rol = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/rolo.csv', delimiter=",")
     
     def SPF(self, lam):
         '''

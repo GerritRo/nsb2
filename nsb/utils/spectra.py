@@ -7,4 +7,4 @@ def hl_spectra(file):
     return h
 
 def eso_airglow():
-    return hl_spectra('/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/airglow_130sfu.csv')
+    return hl_spectra('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/airglow_130sfu.csv')

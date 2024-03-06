@@ -14,7 +14,7 @@ import astropy.units as u
 
 class Kawara2017(DiffuseEmitter):
     def compile(self):
-        file = '/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/IRIS_nohole_4_2048_v2.fits'
+        file = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/IRIS_nohole_4_2048_v2.fits'
         self.hp_map =  np.clip(hp.read_map(file, None)-0.8, 0, self.config['i100_max'])
         self.NSIDE = hp.npix2nside(len(self.hp_map))
         
@@ -44,7 +44,7 @@ class Kawara2017(DiffuseEmitter):
     
 class GaiaDR3Mag15(DiffuseEmitter):
     def compile(self):
-        spath = '/home/gerritr/ECAP/nsb_simulation/nsb_refactor/nsb/utils/assets/'
+        spath = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/'
         self.m_b = -2.5*np.log10(np.load(spath + 'gaia_m_b_15plus.npy')+1e-31)
         self.m_g = -2.5*np.log10(np.load(spath + 'gaia_m_g_15plus.npy')+1e-31)
         self.NSIDE = hp.npix2nside(len(self.m_g))
