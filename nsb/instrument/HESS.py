@@ -9,9 +9,9 @@ from ctapipe.instrument import CameraGeometry
 
 # HESS Optic Descriptions from papers
 class Cornils2003(Optics):   
-    def psf(self, off_in, off_out, pos, rho):
+    def psf(self, off, pos, rho):
         p = self.config['parameters']
-        off = off_in/np.deg2rad(2.5)
+        off = off/np.deg2rad(2.5)
         
         sigma = np.sqrt(p[0]**2 + p[1]*off**2)*1e-3
         
@@ -21,15 +21,19 @@ class Cornils2003(Optics):
         bp = bandpass.HESS1U()
         mirror = 108
         return bp(lam) * mirror * self.config['degradation']
+
+    def t_args(self, frame, f_rays, b_rays):
+        lam = frame.obswl.to(u.nm).value
+        return lam,
     
 # HESS Optic Descriptions from papers
 class Cornils2003_asym(Optics):   
-    def psf(self, off_in, off_out, pos, rho):
+    def psf(self, off, pos, rho):
         p = self.config['parameters']
         sigma = p[0]*1e-3
         alpha = p[1]*1e-3
         
-        off   = off_in/np.deg2rad(2.5)
+        off   = off/np.deg2rad(2.5)
 
         corr_t = 1-1/(1+np.exp(5*(np.abs(pos - np.pi)/np.pi - 0.75)))
         sigma = np.sqrt(sigma**2 + (alpha*off)**2*corr_t)
@@ -41,6 +45,10 @@ class Cornils2003_asym(Optics):
         mirror = 108
         return bp(lam) * mirror * self.config['degradation']
 
+    def t_args(self, frame, f_rays, b_rays):
+        lam = frame.obswl.to(u.nm).value
+        return lam,
+
 class HESS2012(Optics):
     def f_psf(self, rho, sigma):
         return 1/(2*np.pi*sigma**2) * np.exp(-rho**2/(2*sigma**2))
@@ -51,9 +59,13 @@ class HESS2012(Optics):
         qe      = 0.3
         return np.ones(f_rays.N)*mirror*winston*qe
 
-    def psf(self, off_in, off_out, pos, rho):
-        sigma = (self.p[0] + off_in/self.p[1])*1e-3
+    def psf(self, off, pos, rho):
+        sigma = (self.p[0] + off/self.p[1])*1e-3
         return self.f_psf(rho, sigma)
+
+    def t_args(self, frame, f_rays, b_rays):
+        lam = frame.obswl.to(u.nm).value
+        return lam,
     
 class CT1(Camera):
     def __init__(self, N):

@@ -3,149 +3,173 @@ import histlite as hl
 import matplotlib.pyplot as plt
 from abc import abstractmethod
 import astropy.units as u
+from scipy.spatial import KDTree
 
 from nsb.core.logic import Layer, Scattering
 from nsb.core.ray import Ray
-from nsb.core.utils import reduce_rays, haversine
+from nsb.core.utils import reduce_rays, haversine, hist_sample, sq_solid_angle
 from nsb.utils.quad import QuadScheme
 
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import CameraFrame
+from sklearn.neighbors import BallTree
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
-class Camera(Layer):      
+class Instrument(Layer):
+    def compile(self):
+        self.camera = self.config['camera']
+        self.mirror = self.config['mirror']
+
+        if 'psf_hist' in self.config:
+            self.compute_response(self.config['psf_hist'], self.config['compute_parameters'])
+
+        self.emit_coord = self.calc_emit_coord()
+
+    @reduce_rays
+    def forward(self, frame, rays):
+        return self.ray_to_res(self.calc_cam_frame(frame), rays)
+
+    def backward(self, frame, rays):
+        return self.res_to_ray(self.calc_cam_frame(frame))
+
     def calc_cam_frame(self, frame):
         '''
         Calculate camera frame
         '''
         c_frame = CameraFrame(
             telescope_pointing=frame.target,
-            focal_length=self.config['focal length'],
+            focal_length=self.mirror.focal,
             obstime=frame.time,
             location=frame.location,
-            rotation=self.config['rotation']
+            rotation=self.camera.rotate
         )
         c_frame.AltAz = frame.AltAz
         c_frame.obswl = frame.obswl
         return c_frame
-    
-    def calc_solid_angle(self):
-        return 6.5432e-6
 
-    @reduce_rays
-    def forward(self, frame, f_rays):
-        return self.ray_to_pixel(self.calc_cam_frame(frame), f_rays)
-    
-    def backward(self, frame, b_rays):
-        return self.pixel_to_ray(self.calc_cam_frame(frame))
-    
-    def compile(self):
-        # Getting a quadrature scheme based on pixelshape
-        self.scheme = QuadScheme(self.N, self.config['cam'])
-        # Get x and y position of pixels and oversample
-        x, y = self.config['cam'].pix_x.value, self.config['cam'].pix_y.value
-        self.coo = self.scheme.oversample(x, y)
-    
-    def ray_to_pixel(self, frame, rays):
+    def ray_to_res(self, frame, rays):
         prays = rays.transform_to(frame)
-        x, y = prays.coords.x, prays.coords.y
-        unit = x.unit
-        coor = np.dstack([x.to_value(unit), y.to_value(unit)])
-        circum_rad = self.config['cam']._pixel_circumradius[0].to_value(unit)
-        inner_rad  = self.config['cam'].pixel_width[0].to_value(unit)/2
-        dist, pix_indices = self.config['cam']._kdtree.query(coor, distance_upper_bound=circum_rad)
-        # 1. Mark all points outside pixel circumference as lying outside camera
-        pix_indices[pix_indices == self.config['cam'].n_pixels] = -1
-        # 2. Get all pixels that are assigned to border pixel and not within inner bounding circle
-        border_mask = self.config['cam'].get_border_pixel_mask()
-        m = np.isin(pix_indices, np.where(border_mask)[0]) & (dist>inner_rad)
-        i = np.nonzero(m)
-        # 3. Shift to non-border pixel:
-        insidepix_index = np.where(~border_mask)[0][0]
-        subtr = np.asarray([self.config['cam'].pix_x[pix_indices[m]].value, self.config['cam'].pix_y[pix_indices[m]].value]).T
-        shift = np.asarray([self.config['cam'].pix_x[insidepix_index].value, self.config['cam'].pix_y[insidepix_index].value])
-        coor_prime = (coor[m]-subtr+shift)
-        # 4. Check with points shifted towards inside pixel if inside camera:
-        dist_check, index_check = self.config['cam']._kdtree.query(coor_prime, distance_upper_bound=circum_rad)
-        pix_indices[i[0][index_check != insidepix_index], i[1][index_check != insidepix_index]] = -1
-        rays.pixels = pix_indices.flatten()
+        ray_coor = np.vstack([prays.coords.x.value, prays.coords.y.value]).T
+    
+        tree = BallTree(ray_coor)
+        ray_ind = tree.query_radius(self.camera.pix_pos, r=self.config['compute_parameters'][1]*self.camera.pix_rad)
+        
+        # Assign all indices within range to pixel
+        inds, weight = [], []
+        for i, ind in enumerate(ray_ind):
+            dxdy = ray_coor[ind]-self.camera.pix_pos[i]
+            val = self.camera.pixels[i].response(dxdy[:,0], dxdy[:,1])
+            inds.extend(ind)
+            weight.extend(val)
+        
+        res = rays[inds] * np.asarray(weight)[:, np.newaxis]
+        res.pixels = np.repeat(np.arange(len(self.camera.pixels)), [len(x) for x in ray_ind])
+        return res * self.mirror.bandpass(frame.obswl.to(u.nm).value) * self.mirror.area.value
+
+    def res_to_ray(self, frame):
+        x_a, y_a, w_a, p_a = self.emit_coord
+        return Ray(SkyCoord(x_a, y_a, frame=frame).transform_to(frame.AltAz),
+                   np.vstack([w_a]*len(frame.obswl)).T * self.mirror.bandpass(frame.obswl.to(u.nm).value),
+                   p_a,
+                   direction='backward')
+        
+    def calc_emit_coord(self):
+        x_a, y_a, w_a, p_a = np.asarray([])*u.m, np.asarray([])*u.m, np.asarray([]), np.asarray([])
+        for i, pix in enumerate(self.camera.pixels):
+            x, y, v = self.emit_from_hist(pix.response, self.N)
+            x_a = np.append(x_a, x+pix.position[0]*u.m)
+            y_a = np.append(y_a, y+pix.position[1]*u.m)
+            w_a = np.append(w_a, v * self.mirror.area.value)
+            p_a = np.append(p_a, np.array([i]).repeat(len(x)))
+
+        return x_a, y_a, w_a, p_a.astype(int)
+    
+    def emit_from_hist(self, h, N):
+        N = int(len(h.values)/(2**np.ceil(np.log2(np.sqrt(N)))))
+        h_reb = h.rebin(0, h.bins[0][::N]).rebin(1, h.bins[1][::N])/N**2
+        h_reb = h_reb * sq_solid_angle(h_reb.volumes, self.mirror.focal.value)
+        mgrid = np.meshgrid(h_reb.centers[0], h_reb.centers[1], indexing='ij')
+        return mgrid[0].flatten()*u.m, mgrid[1].flatten()*u.m, h_reb.values.flatten()
+        
+    def compute_response(self, psf_hist, parameters):
+        dd_grid  = parameters[0]
+        max_frad = parameters[1]
+        N = parameters[2]
+
+        def calc_vals(x, y, f):
+            return np.arctan(np.sqrt(x**2+y**2) / f), np.arctan2(y,x)
+        
+        for pix in self.camera.pixels:
+            if not hasattr(pix, 'response'):
+                x, y, edges = pix.pixel_grid(max_frad*pix.radius, dd_grid)
+            
+                off, tht = calc_vals(x + pix.position[0], y + pix.position[1], self.mirror.focal.value)
+                pos, rho = hist_sample(psf_hist, off, N)
+            
+                x_n = x[:,np.newaxis] + np.tan(rho)*self.mirror.focal.value*np.cos(pos)
+                y_n = y[:,np.newaxis] + np.tan(rho)*self.mirror.focal.value*np.sin(pos)
+            
+                pix.response = hl.Hist([edges, edges], np.sum(pix.is_inside(x_n, y_n), axis=1).reshape((dd_grid,dd_grid)).T / N)
+
+class Camera():
+    def __init__(self, pixels, rotation):
+        self.pixels = pixels
+        self.rotate = rotation
+
+        self.pix_pos = np.asarray([pix.position for pix in pixels])
+        self.pix_rad = np.asarray([pix.radius for pix in pixels])
+
+    def xy_to_pixel(self, x, y):
+        tree = BallTree(np.vstack([x, y]).T)
+        ind = tree.query_radius(self.pix_pos, r=self.pix_rad)
+        for i, ii in enumerate(ind):
+            rays.pixels[ii[pix[i].is_inside(x[ii], y[ii])]] = i
         return rays
 
-    def pixel_to_ray(self, frame):
-        '''
-        This function uses quadpy to emit rays from each pixel shape, oversampling using quadrature
-        '''
-        # Translate into SkyCoords
-        coords = SkyCoord(self.coo[:,0,:]*u.m, self.coo[:,1,:]*u.m, frame=frame).transform_to(frame.AltAz)
-        weight = np.tile(self.scheme.weights, coords.shape[0])*self.calc_solid_angle()
-        pixels = np.arange(coords.shape[0]).repeat(coords.shape[-1])
-        return Ray(coords.flatten(), 
-                   np.vstack([weight.flatten()]*len(frame.obswl)).T, 
-                   pixels.flatten(), 
-                   direction='backward')
-
     def pix_assign(self, rays):
-        '''
-        Sums weights over all rays that fall into a pixel
-        '''
-        tot_pix  = self.config['cam'].pix_x.shape[0]
-        pix_mask = (rays.pixels>=0)
+        pix_id, weight = (rays.pixels[rays.pixels>=0], rays.weight[rays.pixels>=0])
+        return np.bincount(pix_id, weight, minlength=len(self.pix_pos))
 
-        res = np.bincount(rays.pixels[pix_mask],
-                          weights=rays.weight[pix_mask],
-                          minlength=tot_pix)
-        return res
+class Pixel():
+    def __init__(self, position, radius, shape):
+        self.position = position
+        self.radius = radius
+        self.shape  = shape
 
-    def display(self, rays, ax, label='a.u.', **kwargs):
-        '''
-        Displays camera response to a group of rays
-        '''
-        display = CameraDisplay(self.config['cam'], ax=ax, **kwargs)
-        display.image = self.pix_assign(rays)
-        display.add_colorbar(label=label)
-        return display
+    def is_inside(self, x, y):
+        x_a, y_a = np.abs(x), np.abs(y)
+        if self.shape == 'hexagon':
+            h, v = self.radius*np.cos(np.pi/12), self.radius/2
+            return ((x_a < h) & (y_a < 2*v)) & (2*v*h - v*x_a - h*y_a >= 0)
+        if self.shape == 'square':
+            return (x_a < self.radius/np.sqrt(2)) & (y_a < self.radius/np.sqrt(2))
+        if self.shape == 'circle':
+            return np.sqrt(x**2 + y**2) < self.radius
 
-    
-class Optics(Scattering):
-    def scatter(self, off_in, off_out, pos, rho):
-        return self.psf(off_in, off_out, pos, rho)
+    def pixel_grid(self, r, N):
+        arr_edge = np.linspace(-r, r, N)
+        d = (arr_edge[1]-arr_edge[0])/2
+        test_grid = np.meshgrid(arr_edge, arr_edge)
+        return test_grid[0].flatten(), test_grid[1].flatten(), np.append(arr_edge[0]-d, arr_edge+d)
 
-    @abstractmethod
-    def psf(self, off_in, off_out, pos, rho):
-        return NotImplementedError
-    
-    @abstractmethod
-    def transmission(self, frame, f_rays, r_rays):
-        return NotImplementedError
-    
-    def calc_offset(self, frame, rays):
-        sep_optical = rays.coords.separation(frame.target)
-        return sep_optical
-    
-    def s_args(self, frame, f_rays, b_rays):
-        if f_rays == None:
-            return self.calc_offset(frame, b_rays).rad
-        elif b_rays == None:
-            return self.calc_offset(frame, f_rays).rad
-        else:
-            return (self.calc_offset(frame, f_rays).rad,
-                    self.calc_offset(frame, b_rays).rad,
-                    f_rays.position_angle(b_rays).rad,
-                    f_rays.separation(b_rays).rad)
-            
-    def t_args(self, frame, f_rays, b_rays):
-        lam = frame.obswl.to(u.nm).value
-        return lam,
-    
-    def _build_hist(self, direction, bins):
-        if direction == 'forward':
-            def f(off_in, pos, rho):
-                off_out = np.pi/2-haversine(pos, np.pi/2 - rho, off_in)
-                return np.sin(rho)*self.psf(off_in, off_out, pos, rho)
-        elif direction == 'backward':
-            def f(off_out, pos, rho):
-                off_in = np.pi/2-haversine(pos, np.pi/2 - rho, off_out)
-                return np.sin(rho)*self.psf(off_in, off_out, pos, rho)
+    @property
+    def response(self):
+        return self._response
 
-        return hl.hist_from_eval(f, bins=bins)
+    @response.setter
+    def response(self, hist):
+        self._response = hist
+
+class Mirror():
+    def __init__(self, focal_length, area):
+        self.focal = focal_length
+        self.area  = area
+
+    @property
+    def bandpass(self):
+        return self._spline
+
+    @bandpass.setter
+    def bandpass(self, spline):
+        self._spline = spline

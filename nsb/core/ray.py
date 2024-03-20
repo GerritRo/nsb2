@@ -90,7 +90,7 @@ class Ray:
     
     def __mul__(self, value):
         # Multiplying with an array
-        return Ray(self.coords, 
+        return Ray(self.coords,
                    self.weight*value, 
                    self.pixels, 
                    self.parent, 

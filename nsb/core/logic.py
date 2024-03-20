@@ -4,20 +4,20 @@ import functools
 import astropy.units as u
 from astropy.coordinates import SkyCoord, AltAz, representation
 from abc import ABCMeta, abstractmethod
+from ctapipe.coordinates import CameraFrame
 from sklearn.neighbors import BallTree
 import scipy.integrate as si
 
 import graphlib
+import nsb.core.utils as utils
 from collections import defaultdict
 
-import nsb.core.utils as utils
-
 class Frame:
-    def __init__(self, altaz, target, fov, **kwargs):
-        self.AltAz  = altaz
-        self.location = altaz.location
+    def __init__(self, location, obstime, target, fov, **kwargs):
+        self.AltAz  = AltAz(obstime=obstime, location=location)
+        self.location = location
         self.target = target.transform_to(self.AltAz)
-        self.time   = altaz.obstime
+        self.time   = obstime
         self.fov    = fov
         self.conf   = kwargs
     
@@ -87,9 +87,7 @@ class PhotonMap:
         ind_rays = forward[ind]
         
         new_rays.source = ind_rays.source
-        
         f_weight = self.layer.evaluate(frame, new_rays, ind_rays)
-
         return new_rays*f_weight*ind_rays.weight
     
     def generate_map(self, rays):
@@ -100,7 +98,6 @@ class PhotonMap:
         az, alt = rays.coords.az.rad, rays.coords.alt.rad
         ind = balltree.query_radius(np.vstack([alt, az]).T, r=self.radius)
         lengths = [len(x) for x in ind]
-
         return lengths, np.concatenate(ind)
     
     
@@ -121,7 +118,6 @@ class Layer(metaclass=ABCMeta):
             self.mode = parent_modes.pop()
         elif len(set(parent_modes)) == 2:
             self.mode = 'bidirectional'
-            
         return self
     
     def compile(self):
@@ -153,7 +149,7 @@ class Transmission(Layer):
     @abstractmethod
     def t_args(self, frame, rays):
         return NotImplementedError
-    
+
 class Scattering(Layer):      
     def map(self, radius):
         '''

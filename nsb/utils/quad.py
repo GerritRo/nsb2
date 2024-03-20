@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import quadpy
 
 class QuadScheme():
-    def __init__(self, order, cam):
+    def __init__(self, order, pixels):
         self.order = order
         self.width = cam.pixel_width
         self.points, self.weights = self.get_points(cam.pix_type.value)
