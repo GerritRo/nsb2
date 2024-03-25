@@ -12,6 +12,7 @@ from scipy.interpolate import UnivariateSpline
 import astropy
 import astropy.units as u
 import astropy.constants as c
+from astropy.coordinates import SkyCoord
 
 class KS1991(Emitter):
     def emit(self, frame):
@@ -77,8 +78,9 @@ class Jones2013(Emitter):
                               sun_angle.rad)
         
         z_switch = 1 if moon.transform_to(frame.AltAz).alt > 0*u.deg else 0
+        coord = moon.transform_to(frame.AltAz)
         
-        return Ray(moon.transform_to(frame.AltAz).reshape(1), 
+        return Ray(SkyCoord(alt = coord.alt, az=coord.az, frame=frame.AltAz).reshape(1), 
                    weight=norm*self.SPF(frame.obswl.to(u.m).value)*z_switch, 
                    source=type(self), 
                    direction='forward')

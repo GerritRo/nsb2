@@ -69,7 +69,8 @@ class Instrument(Layer):
 
     def res_to_ray(self, frame):
         x_a, y_a, w_a, p_a = self.emit_coord
-        return Ray(SkyCoord(x_a, y_a, frame=frame).transform_to(frame.AltAz),
+        coord = SkyCoord(x_a, y_a, frame=frame).transform_to(frame.AltAz)
+        return Ray(SkyCoord(alt = coord.alt, az=coord.az, frame=frame.AltAz),
                    np.vstack([w_a]*len(frame.obswl)).T * self.mirror.bandpass(frame.obswl.to(u.nm).value),
                    p_a,
                    direction='backward')

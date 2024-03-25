@@ -21,7 +21,6 @@ class Frame:
         self.fov    = fov
         self.conf   = kwargs
     
-    
 class Model(metaclass=ABCMeta):
     def __init__(self, layers):
         self.layers = layers
@@ -63,7 +62,6 @@ class Model(metaclass=ABCMeta):
 class PhotonMap:
     def __init__(self, layer, radius):
         self.mode   = 'backward'
-        
         self.layer   = layer
         self.parents = layer.parents
         self.radius  = radius
@@ -80,14 +78,15 @@ class PhotonMap:
         
         forward  = functools.reduce(lambda a,b:a+b, forward)
         backward = functools.reduce(lambda a,b:a+b, backward)
-        
+
         balltree = self.generate_map(forward)
         lengths, ind = self.query_map(balltree, backward)
         new_rays = backward.repeat(lengths)
         ind_rays = forward[ind]
-        
         new_rays.source = ind_rays.source
         f_weight = self.layer.evaluate(frame, new_rays, ind_rays)
+
+            
         return new_rays*f_weight*ind_rays.weight
     
     def generate_map(self, rays):
