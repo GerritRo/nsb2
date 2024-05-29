@@ -22,7 +22,7 @@ class RadialScattering(Scattering):
 
     def _build_hist(self, direction, bins):
         def f(rho):
-            return np.sin(rho)*self.indicatrix(rho)
+            return self.indicatrix(rho)
         return hl.hist_from_eval(f, bins=bins).normalize()
     
     def s_args(self, frame, f_rays, b_rays):

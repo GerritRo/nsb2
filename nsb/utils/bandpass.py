@@ -18,3 +18,15 @@ def GaiaDR3():
 
 def JohnsonV():
     return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/johnson_v.csv')
+
+def TychoV():
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/tycho_V.txt')
+
+def TychoB():
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/tycho_B.txt')
+
+def HippM():
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/hipp_M.txt')
+
+def DCMST():
+    return p_spline('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/qe_R12992-100-05b.dat')

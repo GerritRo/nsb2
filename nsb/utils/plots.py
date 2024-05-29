@@ -38,18 +38,18 @@ def prelim(pos):
         return wrapper
     return decorator
 
-def comp_plot_001(pipe, mc, data, title):
+def comp_plot_001(cam, mc, data, title):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(12, 10), gridspec_kw = {'height_ratios':[2.7,2]})
 
     # Plot two main plots
-    disp1 = CameraDisplay(pipe.config['cam'], ax=ax[0,0])
+    disp1 = CameraDisplay(cam, ax=ax[0,0])
     disp1.add_colorbar(label='NSB Rate [MHz]', orientation='horizontal')
     nan_index = data[data.isna()].index.tolist()
     disp1.image = data.fillna(np.nan).values
 
     maxval = np.nanpercentile(np.ma.filled(disp1.image, np.nan), 99.9)
 
-    disp2 = CameraDisplay(pipe.config['cam'], ax=ax[0,1])
+    disp2 = CameraDisplay(cam, ax=ax[0,1])
     disp2.add_colorbar(label='NSB Rate [MHz]', orientation='horizontal')
     disp2.image = mc
 
@@ -142,18 +142,18 @@ def comp_plot_002(cam, mc1, mc2, data, title, labels):
     
     return fig, ax
 
-def comp_plot_003(pipe, mc, data, title):
+def comp_plot_003(cam, mc, data, title):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(10, 12))
 
     # Plot two main plots
-    disp1 = CameraDisplay(pipe.config['cam'], ax=ax[0,0])
+    disp1 = CameraDisplay(cam, ax=ax[0,0])
     disp1.add_colorbar(label='Data NSB Rate [MHz]', orientation='horizontal')
     nan_index = data[data.isna()].index.tolist()
     disp1.image = data.fillna(np.nan).values
 
     maxval = np.nanpercentile(np.ma.filled(disp1.image, np.nan), 99.5)
     
-    disp2 = CameraDisplay(pipe.config['cam'], ax=ax[1,0])
+    disp2 = CameraDisplay(cam, ax=ax[1,0])
     disp2.add_colorbar(label='MC NSB Rate [MHz]', orientation='horizontal')
     disp2.image = mc
 
@@ -164,7 +164,7 @@ def comp_plot_003(pipe, mc, data, title):
     bounds = [-1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 1]
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N, extend='both')
     
-    disp3 = CameraDisplay(pipe.config['cam'], ax=ax[0,1])
+    disp3 = CameraDisplay(cam, ax=ax[0,1])
     disp3.add_colorbar(label='(Data-MC)/Data', orientation='horizontal')
     disp3.norm = norm
     disp3.image = 1 - disp2.image/disp1.image

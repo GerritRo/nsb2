@@ -34,9 +34,6 @@ class Cornils2003_asym(Optics):
         alpha = p[1]*1e-3
         
         off   = off/np.deg2rad(2.5)
-
-        corr_t = 1-1/(1+np.exp(5*(np.abs(pos - np.pi)/np.pi - 0.75)))
-        sigma = np.sqrt(sigma**2 + (alpha*off)**2*corr_t)
     
         return rho/(sigma**2) * np.exp(-rho**2/(2*sigma**2))
     

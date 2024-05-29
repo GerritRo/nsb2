@@ -4,7 +4,6 @@ import functools
 import astropy.units as u
 from astropy.coordinates import SkyCoord, AltAz, representation
 from abc import ABCMeta, abstractmethod
-from ctapipe.coordinates import CameraFrame
 from sklearn.neighbors import BallTree
 import scipy.integrate as si
 
@@ -13,13 +12,16 @@ import nsb.core.utils as utils
 from collections import defaultdict
 
 class Frame:
-    def __init__(self, location, obstime, target, fov, **kwargs):
+    def __init__(self, location, obstime, target, fov, rotation, obswl, **kwargs):
         self.AltAz  = AltAz(obstime=obstime, location=location)
         self.location = location
         self.target = target.transform_to(self.AltAz)
         self.time   = obstime
         self.fov    = fov
+        self.obswl  = obswl
         self.conf   = kwargs
+        
+        self.telframe = self.target.skyoffset_frame(rotation=rotation)
     
 class Model(metaclass=ABCMeta):
     def __init__(self, layers):
@@ -86,7 +88,6 @@ class PhotonMap:
         new_rays.source = ind_rays.source
         f_weight = self.layer.evaluate(frame, new_rays, ind_rays)
 
-            
         return new_rays*f_weight*ind_rays.weight
     
     def generate_map(self, rays):
