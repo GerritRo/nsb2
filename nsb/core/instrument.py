@@ -1,14 +1,11 @@
 import numpy as np
 import histlite as hl
 import matplotlib.pyplot as plt
-from abc import abstractmethod
 import astropy.units as u
-from scipy.spatial import KDTree
 
 from nsb.core.logic import Layer, Scattering
 from nsb.core.ray import Ray
 from nsb.core.utils import reduce_rays, haversine, hist_sample, sq_solid_angle
-from nsb.utils.quad import QuadScheme
 
 from astropy.coordinates import angular_separation, position_angle
 from astropy.coordinates import SkyCoord, offset_by
@@ -128,7 +125,6 @@ class Camera():
             pos, rho = hist_sample(psf_hist, haversine(pix_lon+lon, pix_lat+lat, 0), N)
             # Offset coordinates:
             pos_samp = position_angle(pix_lon+lon, pix_lat+lat, 0, 0)
-            #print(haversine(pix_lon+lon, pix_lat+lat, 0))
             s_lon, s_lat = offset_by(pix_lon+lon[:,np.newaxis], pix_lat+lat[:,np.newaxis], pos_samp[:,np.newaxis].rad-pos+np.pi, rho)
             # Translate to gnonomic and check percentage inside pixel
             x, y = gnonomic(s_lon, s_lat)
@@ -136,7 +132,7 @@ class Camera():
             shape = camera_geometry.pix_type.value
             inside = np.sum(is_inside(y*focal_length-pix_x, x*focal_length-pix_y, circum_rad, shape), axis=1)
             
-            # Create pixel
+            # Create pixel and assign radius to be region where 99% of rays are in
             rad99 = np.max(np.sqrt(lon**2+lat**2)[inside > 0.01*N])
             pix = Pixel([pix_lat, pix_lon], min(rad99, s_rad))
             pix.response = hl.Hist([pix_lon + edges, pix_lat+edges], inside.reshape((d_grid, d_grid)).T / N)*mirror_area

@@ -4,16 +4,6 @@ import functools
 import nsb as nsb
 from collections import defaultdict
 
-def coordinate_system(coord_sys):
-    def _decorator(func):
-        def _wrapper(self, frame, rays):
-            if coord_sys == 'camera':
-                return func(self, frame, [x.transform_to(frame.cframe) for x in rays])
-            else:
-                return func(self, frame, [x.transform_to(coord_sys) for x in rays])
-        return _wrapper
-    return _decorator
-
 def reduce_rays(func):
     def _decorator(self, frame, rays):
         rays = functools.reduce(lambda a,b:a+b, rays)

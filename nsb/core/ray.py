@@ -6,15 +6,14 @@ class Ray:
         """
         'Ray' base class.
         
-        Effectively a wrap around astropy SkyCoord, enabling some additional logic,
-        especially regarding weights.
+        Effectively a wrapper around astropy SkyCoord, enabling some additional logic,
+        especially regarding weights and inheriting a parentage.
         """
         self.coords = coords
         self.weight = weight
         self.pixels = pixels
         self.parent = parent
         self.source = source
-
         self.direction = direction
 
         if not isinstance(self.weight, np.ndarray):
@@ -75,7 +74,7 @@ class Ray:
                    direction=self.direction)
 
     def __add__(self, ray2):
-        # First we need to create a combined SkyCoord
+        # Create a combined SkyCoord
         alt_new = np.append(self.coords.alt.deg, ray2.coords.alt.deg)
         az_new  = np.append(self.coords.az.deg, ray2.coords.az.deg)
         sc_new = SkyCoord(az_new, alt_new, unit='deg', frame=self.coords.frame)

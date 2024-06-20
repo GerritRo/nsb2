@@ -2,7 +2,7 @@ import numpy as np
 import astropy.units as u
 
 from nsb.core import Ray
-from nsb.core.emitter import DiffuseEmitter
+from nsb.core.emitter import Diffuse
 from nsb.utils.formulas import blackbody
 
 import astropy
@@ -10,7 +10,7 @@ import astropy.constants as c
 import astropy.units as u
 from scipy.interpolate import RegularGridInterpolator
 
-class Masana2021(DiffuseEmitter):
+class Masana2021(Diffuse):
     def compile(self):
         zod = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/leinert_zodiac.csv', delimiter=",")
         fit_points = [zod[1:,0], zod[0,1:]]
@@ -39,7 +39,7 @@ class Masana2021(DiffuseEmitter):
         weight = 1e-11*self.A(np.asarray([alpha, beta]).T)[:,np.newaxis] * corr * self.SPF(frame.obswl.to(u.m).value)
         return rays*weight
 
-class Kwon2004(DiffuseEmitter):
+class Kwon2004(Diffuse):
     def compile(self):
         zod = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/leinert_zodiac.csv', delimiter=",")
         fit_points = [zod[1:,0], zod[0,1:]]

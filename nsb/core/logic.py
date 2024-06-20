@@ -1,15 +1,15 @@
-import numpy as np
-import functools
-
-import astropy.units as u
-from astropy.coordinates import SkyCoord, AltAz, representation
 from abc import ABCMeta, abstractmethod
+import functools
+import graphlib
+from collections import defaultdict
+
+import numpy as np
 from sklearn.neighbors import BallTree
 import scipy.integrate as si
 
-import graphlib
+import astropy.units as u
+from astropy.coordinates import AltAz
 import nsb.core.utils as utils
-from collections import defaultdict
 
 class Frame:
     def __init__(self, location, obstime, target, fov, rotation, obswl, **kwargs):
@@ -43,7 +43,7 @@ class Model(metaclass=ABCMeta):
     
     def predict(self, frame):
         ts = graphlib.TopologicalSorter(utils.reverse_graph(self.c_graph))
-        data_dict  = defaultdict(list)
+        data_dict = defaultdict(list)
 
         results = []
         for node in tuple(ts.static_order()):
@@ -60,7 +60,6 @@ class Model(metaclass=ABCMeta):
         
         return comb
     
-
 class PhotonMap:
     def __init__(self, layer, radius):
         self.mode   = 'backward'
@@ -68,6 +67,7 @@ class PhotonMap:
         self.parents = layer.parents
         self.radius  = radius
 
+        # Set forwards & backwards options to photonmap function
         self.forward  = self.photonmap
         self.backward = self.photonmap
         
@@ -119,7 +119,7 @@ class Layer(metaclass=ABCMeta):
         elif len(set(parent_modes)) == 2:
             self.mode = 'bidirectional'
         return self
-    
+
     def compile(self):
         return None
         
@@ -143,7 +143,7 @@ class Transmission(Layer):
         return b_rays * self.transmission(*t_args)
     
     @abstractmethod
-    def transmission(self, frame, *t_args):
+    def transmission(self, *t_args):
         return NotImplementedError
 
     @abstractmethod

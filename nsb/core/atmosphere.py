@@ -1,9 +1,8 @@
 import numpy as np
 import histlite as hl
-from abc import abstractmethod
 
-from nsb.core import Scattering
-import nsb.core.utils as utils
+from abc import ABCMeta, abstractmethod
+from nsb.core.logic import Scattering
 
 class RadialScattering(Scattering):
     def scatter(self, rho):
@@ -22,7 +21,7 @@ class RadialScattering(Scattering):
 
     def _build_hist(self, direction, bins):
         def f(rho):
-            return self.indicatrix(rho)
+            return np.sin(rho)*self.indicatrix(rho)
         return hl.hist_from_eval(f, bins=bins).normalize()
     
     def s_args(self, frame, f_rays, b_rays):
@@ -33,6 +32,47 @@ class RadialScattering(Scattering):
         else:
             return (f_rays.separation(b_rays).rad,)
         
+    @abstractmethod
+    def t_args(self, frame, f_rays, b_rays):
+        return NotImplementedError
+
+class OffAxisScattering(Scattering):
+    def scatter(self, off, pos, rho):
+        return self.psf(off, pos, rho)
+
+    @abstractmethod
+    def psf(self, off, pos, rho):
+        return NotImplementedError
+    
+    @abstractmethod
+    def transmission(self, frame, f_rays, r_rays):
+        return NotImplementedError
+    
+    def calc_offset(self, frame, rays):
+        sep_optical = rays.coords.separation(frame.target)
+        return sep_optical
+    
+    def s_args(self, frame, f_rays, b_rays):
+        if f_rays == None:
+            return self.calc_offset(frame, b_rays).rad
+        elif b_rays == None:
+            return self.calc_offset(frame, f_rays).rad
+        else:
+            return (self.calc_offset(frame, f_rays).rad,
+                    f_rays.position_angle(b_rays).rad,
+                    f_rays.separation(b_rays).rad)
+    
+    def _build_hist(self, direction, bins):
+        if direction == 'forward':
+            def f(off_in, pos, rho):
+                return np.sin(rho)*self.psf(off_in, pos, rho)
+        elif direction == 'backward':
+            def f(off_out, pos, rho):
+                off_in = np.pi/2-haversine(pos, np.pi/2 - rho, off_out)
+                return np.sin(rho)*self.psf(off_in, pos, rho)
+
+        return hl.hist_from_eval(f, bins=bins)
+
     @abstractmethod
     def t_args(self, frame, f_rays, b_rays):
         return NotImplementedError

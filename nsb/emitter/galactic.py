@@ -3,7 +3,7 @@ import pandas as pd
 import healpy as hp
 
 from nsb.core import Ray
-from nsb.core.emitter import DiffuseEmitter
+from nsb.core.emitter import Diffuse
 from nsb.utils.formulas import blackbody, ballesteros
 from nsb.utils import bandpass
 from scipy.interpolate import UnivariateSpline
@@ -12,7 +12,7 @@ import astropy
 import astropy.constants as c
 import astropy.units as u
 
-class Kawara2017(DiffuseEmitter):
+class Kawara2017(Diffuse):
     def compile(self):
         file = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/IRIS_nohole_4_2048_v2.fits'
         self.hp_map =  np.clip(hp.read_map(file, None)-0.8, 0, self.config['i100_max'])
@@ -42,7 +42,7 @@ class Kawara2017(DiffuseEmitter):
         weight = 1e-9*self.SPF(frame.obswl.to(u.micron).value, dust)
         return rays*weight
     
-class GaiaDR3Mag15(DiffuseEmitter):
+class GaiaDR3Mag15(Diffuse):
     def compile(self):
         spath = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/'
         self.m_b = -2.5*np.log10(np.load(spath + 'gaia_m_b_15plus.npy')+1e-31)
