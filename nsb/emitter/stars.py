@@ -14,7 +14,7 @@ from blacksky.catalog import StarCatalog, StarMap
 from nsb.core import Ray
 from nsb.core.emitter import Emitter, Diffuse
 
-class StarCatalog(Emitter):
+class GaiaDR3(Emitter):
     def compile(self):
         catalog = self.config['catalog']
 
@@ -36,7 +36,7 @@ class StarCatalog(Emitter):
         
         return Ray(coords, weight=spec/E_p, source=type(self), parent=ind, direction='forward')
 
-class StarMap(Diffuse):
+class GaiaDR3Mag15(Diffuse):
     def compile(self):
         spath = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/'
         self.m_b = -2.5*np.log10(np.load(spath + 'gaia_m_b_15plus.npy')+1e-31)
@@ -48,5 +48,5 @@ class StarMap(Diffuse):
         
         self.norm = self._norm_mag_spectrum()    
 
-if __name__ == "__main__":
-    None
+
+

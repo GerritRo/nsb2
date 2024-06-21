@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import histlite as hl
 import matplotlib.pyplot as plt
@@ -85,7 +87,12 @@ class Camera():
         res.pixels = np.repeat(np.arange(len(self.pixels)), [len(x) for x in ray_ind])
         
         return inds, res
-
+    
+    @classmethod
+    def from_response(cls, file):
+        with open(file, 'rb') as pixels:
+            return cls(pickle.load(pixels))
+        
     @classmethod
     def from_ctapipe(cls, camera_geometry, psf_hist, mirror_area, focal_length, d_grid=32):
         # Setting some sampling values that should be dynamically calculated:
