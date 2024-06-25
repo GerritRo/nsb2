@@ -17,8 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "blacksky @ git+ssh://git@git.ecap.work:groellinghoff/blacksky.git"
-    "histlite @ git+https://github.com/GerritRo/histlite.git"
+    "blacksky @ git+ssh://git@git.ecap.work:groellinghoff/blacksky.git",
+    "histlite @ git+https://github.com/GerritRo/histlite.git",
     "numpy",
     "scikit-learn",
     "scipy",
