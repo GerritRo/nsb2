@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nsb2"
+authors = [
+    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff@fau.de"},
+]
+description = "Predicting Night Sky Background (NSB) in IACTs using Pseudo-Raytracing"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["nsb", "iacts", "prediction", "telescopes", "background"]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "blacksky @ git+ssh://git@git.ecap.work:groellinghoff/blacksky.git"
+    "histlite @ git+https://github.com/GerritRo/histlite.git"
+    "numpy",
+    "scikit-learn",
+    "scipy",
+    "astropy",
+    "healpy",
+    "pandas",
+]
+dynamic = ["version"]
+
+[tool.setuptools.packages]
+find = {}  # Scan the project directory with the default parameters

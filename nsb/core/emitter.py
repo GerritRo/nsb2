@@ -17,12 +17,7 @@ class Emitter(Layer):
     def emit(self, frame):
         return NotImplementedError
 
-    def display(self, frame, rays):
-        fig, ax = plt.subplots()
-        ax.scatter(rays.az.deg, rays.alt.deg)
-        return fig, ax
-
-class DiffuseEmitter(Layer):
+class Diffuse(Layer):
     def __init__(self, config, N=1):               
         super().__init__(config, N, mode='backward')
         
@@ -36,6 +31,3 @@ class DiffuseEmitter(Layer):
     @abstractmethod
     def evaluate(self, frame, rays):
         return NotImplementedError
-
-    def display(self, frame, rays):
-        return NotImplementedError   

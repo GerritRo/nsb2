@@ -1,40 +1,18 @@
-from abc import abstractmethod
-import numpy as np
-import astropy.units as u
-import histlite as hl
-
+from .. import ASSETS_PATH
 from nsb.core import Ray
 from nsb.core.emitter import Emitter
 from nsb.utils.formulas import blackbody
 
-from scipy.interpolate import UnivariateSpline
-
+import numpy as np
 import astropy
 import astropy.units as u
 import astropy.constants as c
-
-class KS1991(Emitter):
-    def emit(self, frame):
-        sun   = astropy.coordinates.get_sun(frame.time)
-        moon  = astropy.coordinates.get_body("moon", frame.time)
-
-        alpha = astropy.coordinates.Angle('180°') - moon.separation(sun)
-        Vmag  = -12.73 + 0.026 * np.abs(alpha.deg) + 4*10**(-9) * alpha.deg**4
-        moon_alt = moon.transform_to(frame.AltAz).alt
-        z_switch = 1 if moon_alt > 0*u.deg else 0
-        
-        moon = astropy.coordinates.get_body("moon",
-                                            frame.time).transform_to(frame.AltAz)
-        
-        return Ray(moon.reshape(1), 
-                   weight=np.asarray([10**(-0.4*(Vmag)) * 8.79 * 1e9 * z_switch]), 
-                   source=type(self), 
-                   direction='forward')
-
+from astropy.coordinates import SkyCoord
+from scipy.interpolate import UnivariateSpline
     
 class Jones2013(Emitter):
     def compile(self):
-        self.rol = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/rolo.csv', delimiter=",")
+        self.rol = np.genfromtxt(ASSETS_PATH+'lunar_rolo.dat', delimiter=",")
     
     def SPF(self, lam):
         '''
@@ -76,9 +54,10 @@ class Jones2013(Emitter):
                               alpha.rad,
                               sun_angle.rad)
         
-        z_switch = 1 if moon.transform_to(frame.AltAz).alt > 0*u.deg else 0
+        z_switch = 1 if moon.transform_to(frame.AltAz).alt > -5*u.deg else 0
+        coord = moon.transform_to(frame.AltAz)
         
-        return Ray(moon.transform_to(frame.AltAz).reshape(1), 
+        return Ray(SkyCoord(alt = coord.alt, az=coord.az, frame=frame.AltAz).reshape(1), 
                    weight=norm*self.SPF(frame.obswl.to(u.m).value)*z_switch, 
                    source=type(self), 
                    direction='forward')

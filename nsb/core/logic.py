@@ -1,26 +1,27 @@
-import numpy as np
-import functools
-
-import astropy.units as u
-from astropy.coordinates import SkyCoord, AltAz, representation
 from abc import ABCMeta, abstractmethod
-from sklearn.neighbors import BallTree
-import scipy.integrate as si
-
+import functools
 import graphlib
 from collections import defaultdict
 
+import numpy as np
+from sklearn.neighbors import BallTree
+import scipy.integrate as si
+
+import astropy.units as u
+from astropy.coordinates import AltAz
 import nsb.core.utils as utils
 
 class Frame:
-    def __init__(self, altaz, target, fov, **kwargs):
-        self.AltAz  = altaz
-        self.location = altaz.location
+    def __init__(self, location, obstime, target, fov, rotation, obswl, **kwargs):
+        self.AltAz  = AltAz(obstime=obstime, location=location)
+        self.location = location
         self.target = target.transform_to(self.AltAz)
-        self.time   = altaz.obstime
+        self.time   = obstime
         self.fov    = fov
+        self.obswl  = obswl
         self.conf   = kwargs
-    
+        
+        self.telframe = self.target.skyoffset_frame(rotation=rotation)
     
 class Model(metaclass=ABCMeta):
     def __init__(self, layers):
@@ -42,7 +43,7 @@ class Model(metaclass=ABCMeta):
     
     def predict(self, frame):
         ts = graphlib.TopologicalSorter(utils.reverse_graph(self.c_graph))
-        data_dict  = defaultdict(list)
+        data_dict = defaultdict(list)
 
         results = []
         for node in tuple(ts.static_order()):
@@ -59,15 +60,14 @@ class Model(metaclass=ABCMeta):
         
         return comb
     
-
 class PhotonMap:
     def __init__(self, layer, radius):
         self.mode   = 'backward'
-        
         self.layer   = layer
         self.parents = layer.parents
         self.radius  = radius
 
+        # Set forwards & backwards options to photonmap function
         self.forward  = self.photonmap
         self.backward = self.photonmap
         
@@ -80,14 +80,12 @@ class PhotonMap:
         
         forward  = functools.reduce(lambda a,b:a+b, forward)
         backward = functools.reduce(lambda a,b:a+b, backward)
-        
+
         balltree = self.generate_map(forward)
         lengths, ind = self.query_map(balltree, backward)
         new_rays = backward.repeat(lengths)
         ind_rays = forward[ind]
-        
         new_rays.source = ind_rays.source
-        
         f_weight = self.layer.evaluate(frame, new_rays, ind_rays)
 
         return new_rays*f_weight*ind_rays.weight
@@ -100,7 +98,6 @@ class PhotonMap:
         az, alt = rays.coords.az.rad, rays.coords.alt.rad
         ind = balltree.query_radius(np.vstack([alt, az]).T, r=self.radius)
         lengths = [len(x) for x in ind]
-
         return lengths, np.concatenate(ind)
     
     
@@ -121,9 +118,8 @@ class Layer(metaclass=ABCMeta):
             self.mode = parent_modes.pop()
         elif len(set(parent_modes)) == 2:
             self.mode = 'bidirectional'
-            
         return self
-    
+
     def compile(self):
         return None
         
@@ -147,13 +143,13 @@ class Transmission(Layer):
         return b_rays * self.transmission(*t_args)
     
     @abstractmethod
-    def transmission(self, frame, *t_args):
+    def transmission(self, *t_args):
         return NotImplementedError
 
     @abstractmethod
     def t_args(self, frame, rays):
         return NotImplementedError
-    
+
 class Scattering(Layer):      
     def map(self, radius):
         '''

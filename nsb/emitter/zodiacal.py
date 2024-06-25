@@ -1,18 +1,16 @@
-import numpy as np
-import astropy.units as u
-
-from nsb.core import Ray
-from nsb.core.emitter import DiffuseEmitter
+from .. import ASSETS_PATH
+from nsb.core.emitter import Diffuse
 from nsb.utils.formulas import blackbody
 
+import numpy as np
 import astropy
 import astropy.constants as c
 import astropy.units as u
 from scipy.interpolate import RegularGridInterpolator
 
-class Masana2021(DiffuseEmitter):
+class Masana2021(Diffuse):
     def compile(self):
-        zod = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/leinert_zodiac.csv', delimiter=",")
+        zod = np.genfromtxt(ASSETS_PATH+'zodiacal_leinert1998.dat', delimiter=",")
         fit_points = [zod[1:,0], zod[0,1:]]
         self.A = RegularGridInterpolator(points=fit_points, values=zod[1:,1:])
     

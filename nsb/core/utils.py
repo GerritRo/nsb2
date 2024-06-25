@@ -8,7 +8,6 @@ def reduce_rays(func):
     def _decorator(self, frame, rays):
         rays = functools.reduce(lambda a,b:a+b, rays)
         return func(self, frame, rays)
-
     return _decorator
 
 def hist_sample(hist, args, N):
@@ -25,6 +24,9 @@ def hist_sample(hist, args, N):
             pos[d == vals[i]] = p.reshape((counts[i], N))
             rho[d == vals[i]] = r.reshape((counts[i], N))
         return pos, rho
+
+def sq_solid_angle(A,f):
+    return 4*np.arcsin(A / (A + 4*f**2))
 
 def haversine(delta_lon, lat1, lat2):
     '''

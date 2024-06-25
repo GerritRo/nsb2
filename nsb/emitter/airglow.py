@@ -3,12 +3,12 @@ from abc import ABCMeta, abstractmethod
 import astropy.units as u
 
 from nsb.core import Ray
-from nsb.core.emitter import Emitter, DiffuseEmitter
+from nsb.core.emitter import Emitter, Diffuse
 import nsb.utils.spectra as spectra
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
    
-class KS1991(DiffuseEmitter):
+class KS1991(Diffuse):
     def X(self, alt):
         return (1 - 0.96 * (np.sin(np.pi/2-alt))**2)**(-0.5)
     
@@ -25,7 +25,7 @@ class KS1991(DiffuseEmitter):
         weight =  p[0] * X_zen * 10**(-0.4 * k * (X_zen - 1))
         return rays*weight
     
-class Noll2012(DiffuseEmitter):
+class Noll2012(Diffuse):
     def compile(self):
         self.ag_spectra = spectra.eso_airglow()
     

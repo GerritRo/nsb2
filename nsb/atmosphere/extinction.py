@@ -8,7 +8,6 @@ import astropy.units as u
 from nsb.core.logic import Transmission
 from nsb.utils.formulas import k_rayleigh, k_mie
 
-
 class Noll2012(Transmission):
     def X(self, Z):
         return (1 - 0.972 * (np.sin(Z))**2)**(-0.5)
@@ -20,7 +19,7 @@ class Noll2012(Transmission):
     
     def t_args(self, frame, rays):
         Z     = np.pi/2-rays.coords.alt.rad
-        tau   = (k_rayleigh(frame) + k_mie(frame)) / frame.conf['albedo']
+        tau   = k_rayleigh(frame) + k_mie(frame)
         
         return (tau, Z)
    
@@ -33,7 +32,7 @@ class Masana2021(Transmission):
     
     def t_args(self, frame, rays):
         Z     = np.pi/2-rays.coords.alt.rad
-        tau   = (k_rayleigh(frame) + k_mie(frame)) / frame.conf['albedo']
-        
+        tau   = k_rayleigh(frame) + k_mie(frame)
+    
         return (tau, Z)
     
