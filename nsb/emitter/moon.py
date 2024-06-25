@@ -1,22 +1,18 @@
-from abc import abstractmethod
-import numpy as np
-import astropy.units as u
-import histlite as hl
-
+from .. import ASSETS_PATH
 from nsb.core import Ray
 from nsb.core.emitter import Emitter
 from nsb.utils.formulas import blackbody
 
-from scipy.interpolate import UnivariateSpline
-
+import numpy as np
 import astropy
 import astropy.units as u
 import astropy.constants as c
 from astropy.coordinates import SkyCoord
+from scipy.interpolate import UnivariateSpline
     
 class Jones2013(Emitter):
     def compile(self):
-        self.rol = np.genfromtxt('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/rolo.csv', delimiter=",")
+        self.rol = np.genfromtxt(ASSETS_PATH+'lunar_rolo.dat', delimiter=",")
     
     def SPF(self, lam):
         '''

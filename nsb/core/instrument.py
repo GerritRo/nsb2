@@ -1,17 +1,16 @@
 import pickle
 
-import numpy as np
-import histlite as hl
-import matplotlib.pyplot as plt
-import astropy.units as u
-
-from nsb.core.logic import Layer, Scattering
+from nsb.core.logic import Layer
 from nsb.core.ray import Ray
 from nsb.core.utils import reduce_rays, haversine, hist_sample, sq_solid_angle
 
+import numpy as np
+import histlite as hl
+import astropy.units as u
 from astropy.coordinates import angular_separation, position_angle
 from astropy.coordinates import SkyCoord, offset_by
 from sklearn.neighbors import BallTree
+from scipy.interpolate import UnivariateSpline
 
 class Instrument(Layer):
     def compile(self):
@@ -159,3 +158,21 @@ class Pixel():
     @response.setter
     def response(self, hist):
         self._response = hist
+
+class Bandpass():
+    def __init__(self, lam, trx):
+        self.lam = lam
+        self.trx = trx
+
+        self.min = np.min(self.lam)
+        self.max = np.max(self.lam)
+
+        self.spline = UnivariateSpline(self.lam, self.trx, s=0, ext=1)
+
+    def __call__(self, lam):
+        return self.spline(lam)
+
+    @classmethod
+    def from_csv(cls, file):
+        arr = np.loadtxt(file, delimiter=",")
+        return cls(arr[:, 0], arr[:, 1])

@@ -1,3 +1,5 @@
+from .. import ASSETS_PATH
+
 import numpy as np
 import histlite as hl
 
@@ -7,4 +9,4 @@ def hl_spectra(file):
     return h
 
 def eso_airglow():
-    return hl_spectra('/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/airglow_130sfu.csv')
+    return hl_spectra(ASSETS_PATH+'airglow_noll2012.dat')

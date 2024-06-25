@@ -16,37 +16,46 @@ from nsb.core.emitter import Emitter, Diffuse
 
 class GaiaDR3(Emitter):
     def compile(self):
-        catalog = self.config['catalog']
-
+        catalog = np.load(self.config['catalog_file'])
+        mags = [catalog['phot_g_mean_mag'], catalog['phot_bp_mean_mag'], catalog['phot_rp_mean_mag']]
+        bpas = [bandpass.GaiaDR3_G(), bandpass.GaiaDR3_BP(), bandpass.GaiaDR3_RP()]
+        
+        catalog = StarCatalog.from_photometry(catalog['ra'], catalog['dec'], magnitudes=mags, bandpass=bpas, stis008=True)
         v_mag = catalog.spectral.apply_bandpass(bandpass.OSN_V())
-        vmask = (v_mag > self.config['magmin']) & (v_mag < self.config['magmax'])
+        vmask = (v_mag > self.config['magmin']) & (v_mag <= self.config['magmax'])
 
         self.catalog = catalog[vmask]
         self.catalog.build_balltree()
 
     def emit(self, frame):
         target = frame.target.transform_to('icrs')
-
         wvl = frame.obswl.to(u.nm).value
         ind, coords, spec = self.catalog.query(wvl, np.asarray([[target.dec.rad, target.ra.rad]]), np.deg2rad(frame.fov))
 
         coords = SkyCoord(coords[:,1], coords[:,0], unit='rad', frame='icrs').transform_to(frame.AltAz)
-
         E_p = c.h.value*c.c.value / (wvl*1e-9)
         
         return Ray(coords, weight=spec/E_p, source=type(self), parent=ind, direction='forward')
 
 class GaiaDR3Mag15(Diffuse):
     def compile(self):
-        spath = '/home/gerritr/ECAP/nsb_simulation/nsb2/nsb/utils/assets/'
-        self.m_b = -2.5*np.log10(np.load(spath + 'gaia_m_b_15plus.npy')+1e-31)
-        self.m_g = -2.5*np.log10(np.load(spath + 'gaia_m_g_15plus.npy')+1e-31)
-        self.NSIDE = hp.npix2nside(len(self.m_g))
+        mag_map = np.load(self.config['magnitude_maps'])
+        mags = [mag_map[0], mag_map[1], mag_map[2]]
+        bpas = [bandpass.GaiaDR3_G(), bandpass.GaiaDR3_BP(), bandpass.GaiaDR3_RP()]
         
-        self.T = ballesteros(np.clip(self.m_b - self.m_g, -0.45, None),
-                                     4261, 0.77, 12.0, 0.445)
+        self.catalog = StarMap.from_photometry_map(magnitudes=mags, bandpass=bpas, stis008=True)
+
+    def evaluate(self, frame, rays):
+        r_g = rays.transform_to('icrs')
+        wvl = frame.obswl.to(u.nm).value
+        E_p = c.h.value*c.c.value / (wvl*1e-9)
         
-        self.norm = self._norm_mag_spectrum()    
+        ind, spec = self.catalog.query(wvl, np.vstack([r_g.coords.dec.deg, r_g.coords.ra.deg]).T)
+        rays.source = type(self)
+        
+        return rays*(spec/E_p)
+
+
 
 
 

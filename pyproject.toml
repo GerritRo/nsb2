@@ -18,12 +18,12 @@ classifiers = [
 ]
 dependencies = [
     "blacksky @ git+ssh://git@git.ecap.work:groellinghoff/blacksky.git"
+    "histlite @ git+https://github.com/GerritRo/histlite.git"
     "numpy",
     "scikit-learn",
     "scipy",
     "astropy",
     "healpy",
-    "histlite",
     "pandas",
 ]
 dynamic = ["version"]
