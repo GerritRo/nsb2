@@ -15,17 +15,9 @@ This is a refactored and reworked version of Matthias Buecheles [nsb](https://py
 - More physical
 - Significantly faster
 
-# Tutorial for Developers:
-## Installation
-A list of necessary packages can be found in nsb_dev.def, which is a singularity container definition file. The easiest way to interact with the package is to compile this into a container:
+# Installation
+This package can be installed via pip via:
 
-singularity build nsb_dev.sif nsb_def.def
+pip install git+https://git.ecap.work/groellinghoff/nsb2.git
 
-## Executing Code
-Enter the singularity container via
-
-singularity shell nsb_dev.sif
-
-You also need to add the nsb2 folder to your PYTHONPATH via
-
-export <path-to-nsb-2> $PYTHONPATH
+Some of the supplementary data (fits file and gaia catalogs) are large and not on this git repo. They can either be created/downloaded manually (see the blacksky examples on how to create a gaia catalog/map). Alternatively, you can get the larger files directly from me.
