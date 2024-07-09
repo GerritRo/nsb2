@@ -24,7 +24,6 @@ dependencies = [
     "scipy",
     "astropy",
     "healpy",
-    "pandas",
 ]
 dynamic = ["version"]
 
