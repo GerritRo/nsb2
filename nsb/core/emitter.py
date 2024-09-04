@@ -24,7 +24,7 @@ class Diffuse(Layer):
     def forward(self, frame, rays):
         return NotImplementedError
     
-    @reduce_rays
+#    @reduce_rays
     def backward(self, frame, rays):
         return self.evaluate(frame, rays)
     

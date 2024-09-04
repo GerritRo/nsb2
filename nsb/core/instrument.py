@@ -5,6 +5,7 @@ from nsb.core.ray import Ray
 from nsb.core.utils import reduce_rays, haversine, hist_sample, sq_solid_angle
 
 import numpy as np
+import numpy.lib.recfunctions as recfc
 import histlite as hl
 import astropy.units as u
 from astropy.coordinates import angular_separation, position_angle
@@ -17,9 +18,8 @@ class Instrument(Layer):
         self.camera = self.config['camera']
         self.bandpass = self.config['bandpass']
 
-        self.emit_coord = self.calc_emit_coord()
+        self.emit_coord = self.calc_emit_coord(self.N)
 
-    @reduce_rays
     def forward(self, frame, rays):
         return self.ray_to_res(frame, rays)
 
@@ -37,10 +37,10 @@ class Instrument(Layer):
                    p_a,
                    direction='backward')
         
-    def calc_emit_coord(self):
+    def calc_emit_coord(self, N):
         lon_a, lat_a, w_a, p_a = np.asarray([])*u.rad, np.asarray([])*u.rad, np.asarray([]), np.asarray([])
         for i, pix in enumerate(self.camera.pixels):
-            lon, lat, v = self.emit_from_hist(pix.response, self.N)
+            lon, lat, v = self.emit_from_hist(pix.response, N)
             lon_a = np.append(lon_a, lon)
             lat_a = np.append(lat_a, lat)
             w_a = np.append(w_a, v)
@@ -58,6 +58,9 @@ class Instrument(Layer):
 class Camera():
     def __init__(self, pixels):
         self.pixels = pixels
+
+        for pixel in pixels:
+            pixel.spline_response = pixel.response.spline_fit(s=1000)
 
         self.pix_pos = np.asarray([pix.position for pix in pixels])
         self.pix_rad = np.asarray([pix.radius for pix in pixels])
@@ -78,7 +81,7 @@ class Camera():
         inds, weight = [], []
         for i, ind in enumerate(ray_ind):
             dxdy = ray_coor[ind]
-            val = self.pixels[i].response(dxdy[:,1], dxdy[:,0])
+            val = np.nan_to_num(self.pixels[i].spline_response(dxdy[:,1], dxdy[:,0]))
             inds.extend(ind)
             weight.extend(val)
 
@@ -167,12 +170,12 @@ class Bandpass():
         self.min = np.min(self.lam)
         self.max = np.max(self.lam)
 
-        self.spline = UnivariateSpline(self.lam, self.trx, s=0, ext=1)
+        self.spline = UnivariateSpline(self.lam, np.array(self.trx.tolist()).prod(axis=1), s=0, ext=1)
 
     def __call__(self, lam):
         return self.spline(lam)
 
     @classmethod
     def from_csv(cls, file):
-        arr = np.loadtxt(file, delimiter=",")
-        return cls(arr[:, 0], arr[:, 1])
+        arr = np.genfromtxt(file, delimiter=",", names=True)
+        return cls(arr['lam'], recfc.drop_fields(arr, "lam", usemask=False))

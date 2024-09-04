@@ -6,8 +6,16 @@ from collections import defaultdict
 
 def reduce_rays(func):
     def _decorator(self, frame, rays):
-        rays = functools.reduce(lambda a,b:a+b, rays)
+        if rays != None:
+            rays = functools.reduce(lambda a,b:a+b, rays)
         return func(self, frame, rays)
+    return _decorator
+
+def multi_rays(func):
+    def _decorator(self, frame, rays):
+        if rays != None:
+            return [func(self, frame, r) for r in rays]
+        return [func(self, frame, rays)]
     return _decorator
 
 def hist_sample(hist, args, N):
@@ -66,9 +74,9 @@ def create_computational_graph(pipe):
     def add_entries(graph, layer):
         for parent in layer.parents:
             if parent.mode == 'backward' or parent.mode == 'bidirectional':
-                graph[layer.backward].append(parent.backward)
+                graph[layer.call_backward].append(parent.call_backward)
             if parent.mode == 'forward' or parent.mode == 'bidirectional':
-                graph[parent.forward].append(layer.forward)
+                graph[parent.call_forward].append(layer.call_forward)
             add_entries(graph, parent)
 
     graph = defaultdict(list)

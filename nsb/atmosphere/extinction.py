@@ -14,7 +14,7 @@ class Noll2012(Transmission):
     
     def transmission(self, tau, Z):
         M = self.X(Z)
-        M_corr = (self.config['scale']*np.log(M) + self.config['offset'])*M
+        M_corr = (self.config['scale']*np.log10(M) + self.config['offset'])*M
         return np.exp(-M_corr[:,np.newaxis]*tau)
     
     def t_args(self, frame, rays):

@@ -8,16 +8,15 @@ from sklearn.neighbors import BallTree
 import scipy.integrate as si
 
 import astropy.units as u
-from astropy.coordinates import AltAz
+from astropy.coordinates import AltAz, SkyCoord
 import nsb.core.utils as utils
 
 class Frame:
-    def __init__(self, location, obstime, target, fov, rotation, obswl, **kwargs):
+    def __init__(self, location, obstime, target, rotation, obswl, **kwargs):
         self.AltAz  = AltAz(obstime=obstime, location=location)
         self.location = location
         self.target = target.transform_to(self.AltAz)
         self.time   = obstime
-        self.fov    = fov
         self.obswl  = obswl
         self.conf   = kwargs
         
@@ -45,19 +44,26 @@ class Model(metaclass=ABCMeta):
         ts = graphlib.TopologicalSorter(utils.reverse_graph(self.c_graph))
         data_dict = defaultdict(list)
 
+        x_a, y_a = self.layers.camera.pix_pos[:,1], self.layers.camera.pix_pos[:,0]
+        frame.pix_coord = SkyCoord(x_a, y_a, unit='rad', frame=frame.telframe).transform_to(frame.AltAz)
+        frame.pix_radii = self.layers.camera.pix_rad
+
         results = []
         for node in tuple(ts.static_order()):
-            res = [node(frame, data_dict.pop(node, None))]
+            res = node(frame, data_dict.pop(node, None))
+            if type(res) != list:
+                res = [res]
             if len(self.c_graph[node]) == 0:
                 results.extend(res)
             else:
                 for j in self.c_graph[node]:
                     data_dict[j].extend(res)
-        
-        comb = functools.reduce(lambda a,b: a+b, results)
+
         if self.method == 'integrated':
-            comb.weight = si.simpson(comb.weight, x=frame.obswl.to(u.nm).value, axis=1)
-        
+            for r in results:
+                r.weight = si.simpson(r.weight, x=frame.obswl.to(u.nm).value, axis=1)
+            
+        comb = functools.reduce(lambda a,b: a+b, results)
         return comb
     
 class PhotonMap:
@@ -70,6 +76,9 @@ class PhotonMap:
         # Set forwards & backwards options to photonmap function
         self.forward  = self.photonmap
         self.backward = self.photonmap
+
+        self.call_forward  = self.photonmap
+        self.call_backward = self.photonmap
         
     def compile(self):
         return None
@@ -123,6 +132,14 @@ class Layer(metaclass=ABCMeta):
     def compile(self):
         return None
         
+    @utils.multi_rays
+    def call_forward(self, frame, rays):
+        return self.forward(frame, rays)
+
+    @utils.multi_rays
+    def call_backward(self, frame, rays):
+        return self.backward(frame, rays)
+        
     @abstractmethod
     def forward(self, frame, rays):
         return NotImplementedError
@@ -132,12 +149,10 @@ class Layer(metaclass=ABCMeta):
         return NotImplementedError
         
 class Transmission(Layer):
-    @utils.reduce_rays
     def forward(self, frame, f_rays):
         t_args = self.t_args(frame, f_rays)
         return f_rays * self.transmission(*t_args)
     
-    @utils.reduce_rays
     def backward(self, frame, b_rays):
         t_args = self.t_args(frame, b_rays)
         return b_rays * self.transmission(*t_args)
@@ -166,7 +181,6 @@ class Scattering(Layer):
         return (self.scatter(*s_args)[:,np.newaxis]
                 * self.transmission(*t_args))
     
-    @utils.reduce_rays
     def forward(self, frame, f_rays):
         if self.N >1:
             s_args = self.s_args(frame, f_rays, None)
@@ -181,7 +195,6 @@ class Scattering(Layer):
             return (f_rays * 
                     self.transmission(*t_args))
     
-    @utils.reduce_rays
     def backward(self, frame, b_rays):
         if self.N >1:
             s_args = self.s_args(frame, None, b_rays)

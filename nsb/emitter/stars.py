@@ -16,11 +16,12 @@ from nsb.core.emitter import Emitter, Diffuse
 
 class GenericStarCatalog(Emitter):
     def emit(self, frame):
-        target = frame.target.transform_to('icrs')
         wvl = frame.obswl.to(u.nm).value
         E_p = c.h.value*c.c.value / (wvl*1e-9)
+
+        q_coords = np.asarray([frame.pix_coord.icrs.dec.rad, frame.pix_coord.icrs.ra.rad]).T
         
-        ind, coords, spec = self.catalog.query(wvl, np.asarray([[target.dec.rad, target.ra.rad]]), np.deg2rad(frame.fov))
+        ind, coords, spec = self.catalog.query(wvl, q_coords, frame.pix_radii)
         coords = SkyCoord(coords[:,1], coords[:,0], unit='rad', frame='icrs').transform_to(frame.AltAz)
         
         return Ray(coords, weight=spec/E_p, source=type(self), parent=ind, direction='forward')
@@ -44,21 +45,17 @@ class GaiaDR3(GenericStarCatalog):
         bpas = [bandpass.GaiaDR3_G(), bandpass.GaiaDR3_BP(), bandpass.GaiaDR3_RP()]
         
         gaia = StarCatalog.from_photometry(main_catalog['ra'], main_catalog['dec'],
-                                           magnitudes=mags, bandpass=bpas, stis008=True)
-        # Loading GaiaDR3 Tycho supplementary catalog
+                                           magnitudes=mags, bandpass=bpas, stis008=True, method=self.config['method'])
+        # Loading GaiaDR3 Hipparcos supplementary catalog
         supp_catalog = np.load(self.config['supp_file'])
-        mags = [supp_catalog['BTmag'], supp_catalog['VTmag'], supp_catalog['Vmag'], supp_catalog['Bmag'], supp_catalog['Hmag']]
-        bpas = [bandpass.Tycho_B(), bandpass.Tycho_V(), bandpass.OSN_V(), bandpass.OSN_B(), bandpass.Hipp_M()]
+        mags = [supp_catalog['Vmag'], supp_catalog['Bmag'], supp_catalog['Hpmag']]
+        bpas = [bandpass.OSN_V(), bandpass.OSN_B(), bandpass.Hipp_M()]
         
-        supp = StarCatalog.from_photometry(supp_catalog['RA_ICRS_'], supp_catalog['DE_ICRS_'],
-                                           magnitudes=mags, bandpass=bpas, stis008=True)
+        supp = StarCatalog.from_photometry(supp_catalog['RAJ2000'], supp_catalog['DEJ2000'],
+                                           magnitudes=mags, bandpass=bpas, stis008=True, method=self.config['method'])
         # Combining catalogs
-        catalog = gaia+supp
-        # Filtering by visual magnitude
-        v_mag = catalog.spectral.apply_bandpass(bandpass.OSN_V())
-        vmask = (v_mag > self.config['magmin']) & (v_mag <= self.config['magmax'])
-
-        self.catalog = catalog[vmask]
+        self.catalog = gaia+supp
+        # Building tree
         self.catalog.build_balltree()
 
 class GaiaDR3Mag15(GenericStarMap):
