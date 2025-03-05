@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nsb2"
 authors = [
-    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff@fau.de"},
+    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff(at)fau.de"},
 ]
 description = "Predicting Night Sky Background (NSB) in IACTs using Pseudo-Raytracing"
 readme = "README.md"
