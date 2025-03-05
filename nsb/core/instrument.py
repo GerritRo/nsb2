@@ -60,7 +60,7 @@ class Camera():
         self.pixels = pixels
 
         for pixel in pixels:
-            pixel.spline_response = pixel.response.spline_fit(s=1000)
+            pixel.spline_response = pixel.response.spline_fit(log=True)
 
         self.pix_pos = np.asarray([pix.position for pix in pixels])
         self.pix_rad = np.asarray([pix.radius for pix in pixels])

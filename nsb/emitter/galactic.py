@@ -11,7 +11,7 @@ class Kawara2017(Diffuse):
     def compile(self):
         file = ASSETS_PATH+'IRIS_combined_SFD_really_nohole_nosource_4_2048.fits'
         self.hp_map =  np.clip(hp.read_map(file, None)-0.8, 0, 50)
-        self.co_map =  np.load(ASSETS_PATH+'kawara_correction.npy')
+        self.co_map =  np.nan_to_num(np.load(ASSETS_PATH+'kawara_clipped.npy')/0.35, nan=1)
         self.NSIDE = hp.npix2nside(len(self.hp_map))
         
         lam = np.asarray([0.23, 0.27, 0.32, 0.37, 0.42, 0.47, 0.55, 0.65]) 
@@ -37,24 +37,4 @@ class Kawara2017(Diffuse):
         
         rays.source = type(self)
         weight = 1e-9*self.SPF(frame.obswl.to(u.micron).value, dust)*corr[:, np.newaxis]
-        return rays*weight
-
-class SFD1999(Diffuse):
-    def compile(self):
-        file = ASSETS_PATH+'IRIS_combined_SFD_really_nohole_nosource_4_2048.fits'
-        self.hp_map =  hp.read_map(file, None)
-        self.NSIDE = hp.npix2nside(len(self.hp_map))
-        
-    def SPF(self, lam, dust):
-        E_p = c.h.value*c.c.value / (lam*1e-6)
-
-        return dust[:, np.newaxis] * 1/E_p
-        
-    def evaluate(self, frame, rays):
-        r_g = rays.transform_to('galactic')
-        pix = hp.ang2pix(self.NSIDE, r_g.coords.l.deg, r_g.coords.b.deg, lonlat=True)
-        dust = self.hp_map[pix]
-        
-        rays.source = type(self)
-        weight = 1e-9*self.SPF(frame.obswl.to(u.micron).value, dust)
         return rays*weight
