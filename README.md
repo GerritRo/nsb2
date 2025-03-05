@@ -1,5 +1,5 @@
 <!-- language: lang-none -->
-<img src="logo.png" alt="Package Logo" style="max-width: 100%; height: auto;">
+![nsb2 logo](assets/nsb2logo.png)
 
 # nsb2: Simulating Night Sky Background for IACTs
 
