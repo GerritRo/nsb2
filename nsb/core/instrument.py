@@ -2,20 +2,20 @@ import pickle
 
 from nsb.core.logic import Layer
 from nsb.core.ray import Ray
-from nsb.core.utils import reduce_rays, haversine, hist_sample, sq_solid_angle
 
 import numpy as np
 import numpy.lib.recfunctions as recfc
-import histlite as hl
 import astropy.units as u
-from astropy.coordinates import angular_separation, position_angle
-from astropy.coordinates import SkyCoord, offset_by
+from astropy.coordinates import SkyCoord
 from sklearn.neighbors import BallTree
 from scipy.interpolate import UnivariateSpline
 
 
 class Instrument(Layer):
     def compile(self):
+        """
+        Calculates the emission coordinates in telescopic frame for this combination of camera and bandpass.
+        """
         self.camera = self.config["camera"]
         self.bandpass = self.config["bandpass"]
 
@@ -28,10 +28,38 @@ class Instrument(Layer):
         return self.res_to_ray(frame)
 
     def ray_to_res(self, frame, rays):
-        inds, res = self.camera.assign_response(frame, rays)
+        """
+        Assigns a pixel to each ray and weights with bandpass and effective area of pixel for the ray location
+
+        Parameters
+        ----------
+        frame : Frame
+            Observation frame
+        rays : Ray
+            Forward rays to be evaluated
+
+        Returns
+        -------
+        Ray
+            Weighted ray with assigned pixels
+        """
+        res = self.camera.assign_response(frame, rays)
         return res * self.bandpass(frame.obswl.to(u.nm).value)
 
     def res_to_ray(self, frame):
+        """
+        Emits ray from telescope
+
+        Parameters
+        ----------
+        frame : Frame
+            Observation frame
+
+        Returns
+        -------
+        Ray
+            Emitted rays from telescope weighted with bandpass and pixel effective area.
+        """
         x_a, y_a, w_a, p_a = self.emit_coord
         return Ray(
             SkyCoord(x_a, y_a, frame=frame.telframe).transform_to(frame.AltAz),
@@ -42,6 +70,19 @@ class Instrument(Layer):
         )
 
     def calc_emit_coord(self, N):
+        """
+        Depending on N, this calculates for each pixel the coordinates of each ray to be emitted
+
+        Parameters
+        ----------
+        N : int
+            Amount of rays to be emitted for each pixel
+
+        Returns
+        -------
+        tuple
+            tuple with (longitude, latitude, weight, pixel id)
+        """
         lon_a, lat_a, w_a, p_a = (
             np.asarray([]) * u.rad,
             np.asarray([]) * u.rad,
@@ -58,6 +99,21 @@ class Instrument(Layer):
         return lon_a, lat_a, w_a, p_a.astype(int)
 
     def emit_from_hist(self, h, N):
+        """
+        For a given histogram, this subsamples based on N by fusing bins
+
+        Parameters
+        ----------
+        h : histlite.Histogram
+            Effective area histogram of pixel
+        N : int
+            Determines emitted rays based on N**2, rounding up to the next instance of 2**i
+
+        Returns
+        -------
+        tuple
+            (longitude, latitude, weight)
+        """
         N = int(len(h.values) / (2 ** np.ceil(np.log2(np.sqrt(N)))))
         h_reb = h.rebin(0, h.bins[0][::N]).rebin(1, h.bins[1][::N]) / N**2
         h_reb = h_reb * h_reb.volumes
@@ -70,6 +126,15 @@ class Instrument(Layer):
 
 
 class Camera:
+    """
+    A camera is defined as a collection of pixels
+
+    Parameters
+    ----------
+    pixels : list of Pixel objects
+        Pixels constituting a camera
+    """
+
     def __init__(self, pixels):
         self.pixels = pixels
 
@@ -80,10 +145,39 @@ class Camera:
         self.pix_rad = np.asarray([pix.radius for pix in pixels])
 
     def pix_assign(self, rays):
+        """
+        Adds together all rays belonging to the same pixel
+
+        Parameters
+        ----------
+        rays : Ray
+            Ray object
+
+        Returns
+        -------
+        numpy.array
+            array of length(pixels) with the ray weights added for each pixel
+        """
         pix_id, weight = (rays.pixels[rays.pixels >= 0], rays.weight[rays.pixels >= 0])
         return np.bincount(pix_id, weight, minlength=len(self.pix_pos))
 
     def assign_response(self, frame, rays):
+        """
+        For a specific observation frame, this transforms the given rays
+        into the camera frame and calculates the pixel response for each ray and assigns them a pixel.
+
+        Parameters
+        ----------
+        frame : Frame
+            Observation frame
+        rays : Ray
+            Incoming rays
+
+        Returns
+        -------
+        Ray
+            ray with pixel assigned and weighted by effective area of each pixel at hit point of ray.
+        """
         prays = rays.transform_to(frame.telframe)
         lon, lat = prays.coords.lon.rad, prays.coords.lat.rad
         ray_coor = np.vstack([lat, lon]).T
@@ -102,103 +196,26 @@ class Camera:
         res = rays[inds] * np.asarray(weight)[:, np.newaxis]
         res.pixels = np.repeat(np.arange(len(self.pixels)), [len(x) for x in ray_ind])
 
-        return inds, res
+        return res
 
     @classmethod
     def from_response(cls, file):
         with open(file, "rb") as pixels:
             return cls(pickle.load(pixels))
 
-    @classmethod
-    def from_ctapipe(
-        cls, camera_geometry, psf_hist, mirror_area, focal_length, d_grid=32
-    ):
-        # Setting some sampling values that should be dynamically calculated:
-        N = 500
-        s_rad = 1.5 * psf_hist.bins[-1][-1]
-
-        # Ctapipe implicitly assumes gnonomic (or small angle) approximation
-        def gnonomic(x, y, inverse=False):
-            if inverse == False:
-                return np.tan(x), np.tan(y) / np.cos(x)
-            else:
-                return np.arctan(x), np.arctan(y / np.sqrt(1 + x**2))
-
-        def create_grid(r, N):
-            arr_edge = np.linspace(-r, r, N)
-            d = (arr_edge[1] - arr_edge[0]) / 2
-            test_grid = np.meshgrid(arr_edge, arr_edge)
-            return (
-                test_grid[0].flatten(),
-                test_grid[1].flatten(),
-                np.append(arr_edge[0] - d, arr_edge + d),
-            )
-
-        def is_inside(x, y, r, shape):
-            x_a, y_a = np.abs(x), np.abs(y)
-            if shape == "hexagon":
-                h, v = r * np.cos(np.pi / 6), r / 2
-                return ((x_a < h) & (y_a < 2 * v)) & (
-                    2 * v * h - v * x_a - h * y_a >= 0
-                )
-            if shape == "square":
-                return (x_a < r / np.sqrt(2)) & (y_a < r / np.sqrt(2))
-            if shape == "circle":
-                return np.sqrt(x**2 + y**2) < r
-
-        pixels = []
-        for i in camera_geometry.pix_id:
-            pix_x, pix_y = (
-                camera_geometry.pix_x[i].value,
-                camera_geometry.pix_y[i].value,
-            )
-            pix_lon, pix_lat = gnonomic(
-                pix_y / focal_length, pix_x / focal_length, inverse=True
-            )
-            # Create as grid of points to sample from:
-            lon, lat, edges = create_grid(s_rad, d_grid)
-            # Sample psf:
-            pos, rho = hist_sample(
-                psf_hist, haversine(pix_lon + lon, pix_lat + lat, 0), N
-            )
-            # Offset coordinates:
-            pos_samp = position_angle(pix_lon + lon, pix_lat + lat, 0, 0)
-            s_lon, s_lat = offset_by(
-                pix_lon + lon[:, np.newaxis],
-                pix_lat + lat[:, np.newaxis],
-                pos_samp[:, np.newaxis].rad - pos + np.pi,
-                rho,
-            )
-            # Translate to gnonomic and check percentage inside pixel
-            x, y = gnonomic(s_lon, s_lat)
-            circum_rad = camera_geometry._pixel_circumradius[i].value
-            shape = camera_geometry.pix_type.value
-            inside = np.sum(
-                is_inside(
-                    y * focal_length - pix_x,
-                    x * focal_length - pix_y,
-                    circum_rad,
-                    shape,
-                ),
-                axis=1,
-            )
-
-            # Create pixel and assign radius to be region where 99% of rays are in
-            rad99 = np.max(np.sqrt(lon**2 + lat**2)[inside > 0.01 * N])
-            pix = Pixel([pix_lat, pix_lon], min(rad99, s_rad))
-            pix.response = (
-                hl.Hist(
-                    [pix_lon + edges, pix_lat + edges],
-                    inside.reshape((d_grid, d_grid)).T / N,
-                )
-                * mirror_area
-            )
-            pixels.append(pix)
-
-        return cls(pixels)
-
 
 class Pixel:
+    """
+    A pixel with a position in the camera plane and a radius describing the maximum extent of its effective area
+
+    Parameters
+    ----------
+    position : tuple
+        (x,y) tuple giving the position in the camera plane
+    radius : astropy.coordinates.Angle
+        Angle given the maximum extent of the effective area as a radius
+    """
+
     def __init__(self, position, radius):
         self.position = position
         self.radius = radius
@@ -214,6 +231,17 @@ class Pixel:
 
 class Bandpass:
     def __init__(self, lam, trx):
+        """
+        Bandpass that can be initialised with wavelengths and relative transmission. It the gets interpolated
+        with a univariate spline. Calling the bandpass with a wavelength then returns the spline values
+
+        Parameters
+        ----------
+        lam : numpy.array
+            Numpy array of wavelengths
+        trx : numpy.array
+            Numpy array of transmission values
+        """
         self.lam = lam
         self.trx = trx
 
@@ -229,5 +257,19 @@ class Bandpass:
 
     @classmethod
     def from_csv(cls, file):
+        """
+        Generate a bandpass from a csv file. The wavelength column should be marked 'lam', all others
+        are assumed to be components of the bandpass and multiplied.
+
+        Parameters
+        ----------
+        file : csv like file
+            CSV file describing the bandpass
+
+        Returns
+        -------
+        Bandpass
+            Bandpass objects gained from the csv file.
+        """
         arr = np.genfromtxt(file, delimiter=",", names=True)
         return cls(arr["lam"], recfc.drop_fields(arr, "lam", usemask=False))

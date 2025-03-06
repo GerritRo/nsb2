@@ -5,7 +5,15 @@ from nsb.core.utils import reduce_rays
 
 
 class Emitter(Layer):
-    def __init__(self, config, N=1):
+    """
+    A layer responsible for emitting forward rays based on the given observational frame
+
+    Parameters
+    ----------
+    config : dictionary
+        Dictionary informing the parameters of the layer at compilation
+    """
+    def __init__(self, config):
         super().__init__(config, N, mode="forward")
 
     def forward(self, frame, rays):
@@ -20,13 +28,21 @@ class Emitter(Layer):
 
 
 class Diffuse(Layer):
-    def __init__(self, config, N=1):
+    """
+    A layer responsible for evaluating backwards rays hitting a diffuse emission.
+
+    Parameters
+    ----------
+    config : dictionary
+        Dictionary informing the parameters of the layer at compilation
+    """
+    def __init__(self, config):
         super().__init__(config, N, mode="backward")
 
     def forward(self, frame, rays):
         return NotImplementedError
 
-    #    @reduce_rays
+    @reduce_rays
     def backward(self, frame, rays):
         return self.evaluate(frame, rays)
 

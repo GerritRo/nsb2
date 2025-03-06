@@ -6,6 +6,9 @@ from nsb.core.logic import Scattering
 
 
 class RadialScattering(Scattering):
+    """
+    Implements Radial Scattering
+    """
     def scatter(self, rho):
         return self.indicatrix(rho)
 
@@ -40,6 +43,9 @@ class RadialScattering(Scattering):
 
 
 class OffAxisScattering(Scattering):
+    """
+    Implements OffAxisScattering
+    """
     def scatter(self, off, pos, rho):
         return self.psf(off, pos, rho)
 

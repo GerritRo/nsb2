@@ -13,23 +13,24 @@ import nsb.core.utils as utils
 
 
 class Frame:
-    def __init__(self, location, obstime, target, rotation, obswl, **kwargs):
-        """
-        Frame class holding information about observatory, observation time, observation wavelength and telescope rotation.
+    """
+    Frame class holding information about observatory, observation time, observation wavelength and telescope rotation.
 
-        Parameters
-        ----------
-        location : astropy.coordinates.EarthLocation
-            EarthLocation of the observer
-        obstime : astropy.time.Time
-            Time of the observation
-        target : astropy.coordinates.SkyCoord
-            Location of the observation center
-        rotation : astropy.coordinates.Angle
-            Rotation of the telescope around its axis compared to nominal AltAz frame
-        obswl : astropy.units.Quantity
-            Array of wavelengths for simulation
-        """
+    Parameters
+    ----------
+    location : astropy.coordinates.EarthLocation
+        EarthLocation of the observer
+    obstime : astropy.time.Time
+        Time of the observation
+    target : astropy.coordinates.SkyCoord
+        Location of the observation center
+    rotation : astropy.coordinates.Angle
+        Rotation of the telescope around its axis compared to nominal AltAz frame
+    obswl : astropy.units.Quantity
+        Array of wavelengths for simulation
+    """
+
+    def __init__(self, location, obstime, target, rotation, obswl, **kwargs):
         self.AltAz = AltAz(obstime=obstime, location=location)
         self.location = location
         self.target = target.transform_to(self.AltAz)
@@ -41,15 +42,16 @@ class Frame:
 
 
 class Model(metaclass=ABCMeta):
-    def __init__(self, layers):
-        """
-        A Model takes a linked layer object to create a computational graph, which can then be executed.
+    """
+    A Model takes a linked layer object to create a computational graph, which can then be executed in order.
 
-        Parameters
-        ----------
-        layers : Layer
-            A linked layer object representing the computation
-        """
+    Parameters
+    ----------
+    layers : Layer
+        A linked layer object representing the computation
+    """
+
+    def __init__(self, layers):
         self.layers = layers
 
     def compile(self, integrated=True):
@@ -128,17 +130,18 @@ class Model(metaclass=ABCMeta):
 
 
 class PhotonMap:
-    def __init__(self, layer, radius):
-        """
-        A photon map connects two layers with different propagation direction.
+    """
+    A photon map connects two layers with different propagation direction.
 
-        Parameters
-        ----------
-        layer : Layer
-            A (linked) layer
-        radius : astropy.coordinates.Angle
-            The maximum angle between forward/backward rays under which they get connected.
-        """
+    Parameters
+    ----------
+    layer : Layer
+        A (linked) layer
+    radius : astropy.coordinates.Angle
+        The maximum angle between forward/backward rays under which they get connected.
+    """
+
+    def __init__(self, layer, radius):
         self.mode = "backward"
         self.layer = layer
         self.parents = layer.parents
@@ -226,20 +229,21 @@ class PhotonMap:
 
 
 class Layer(metaclass=ABCMeta):
-    def __init__(self, config, N=1, mode=None):
-        """
-        Main Class for all layers in a model. Each Layers gets passed a config that
-        describes informs its build process
+    """
+    Main Class for all layers in a model. Each Layers gets passed a config that
+    informs its build process
 
-        Parameters
-        ----------
-        config : Dictionary
-            Dictionary defining the build process for the Layer
-        N : int, optional
-            Oversampling of rays passing through the layer, by default 1
-        mode : str, optional
-            describes if layer is forward or backward propagating, by default None
-        """
+    Parameters
+    ----------
+    config : Dictionary
+        Dictionary defining the build process for the Layer
+    N : int, optional
+        Oversampling of rays passing through the layer, by default 1
+    mode : str, optional
+        describes if layer is forward or backward propagating, by default None
+    """
+
+    def __init__(self, config, N=1, mode=None):
         self.config = config
         self.parents = []
         self.N = N

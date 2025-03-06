@@ -40,6 +40,21 @@ def hist_sample(hist, args, N):
 
 
 def sq_solid_angle(A, f):
+    """
+    Calculates the solid angle of a square on the sky depending on focal ratio
+
+    Parameters
+    ----------
+    A : float or floatlike
+        edge size of square
+    f : float or floatlike
+        focal ratio of telescope
+
+    Returns
+    -------
+    float or floatlike
+        Solid angle of square projected onto the sky
+    """
     return 4 * np.arcsin(A / (A + 4 * f**2))
 
 
@@ -57,11 +72,16 @@ def haversine(delta_lon, lat1, lat2):
     )
 
 
-def create_physical_graph(pipe):
+def create_physical_graph(layer):
     """
     Creates the physics graph.
 
     Graph describing the actual path of light rays from source to instrument.
+
+    Parameters
+    ----------
+    layer : Layer
+        Linked layers for which to calculate computational graph
     """
 
     def add_entries(graph, layer):
@@ -72,16 +92,21 @@ def create_physical_graph(pipe):
             add_entries(graph, parent)
 
     graph = defaultdict(list)
-    add_entries(graph, pipe)
+    add_entries(graph, layer)
 
     return graph
 
 
-def create_computational_graph(pipe):
+def create_computational_graph(layer):
     """
     Creates the computational graph.
 
     Graph describing the computational order to make backwards/forwards rays possible
+
+    Parameters
+    ----------
+    layer : Layer
+        Linked layers for which to calculate computational graph
     """
 
     def add_entries(graph, layer):
@@ -93,28 +118,28 @@ def create_computational_graph(pipe):
             add_entries(graph, parent)
 
     graph = defaultdict(list)
-    add_entries(graph, pipe)
+    add_entries(graph, layer)
 
     return graph
 
 
 def reverse_graph(graph):
+    """
+    Reverse order of directional graph
+
+    Parameters
+    ----------
+    graph : dictionary
+        Graph that should be reversed in dictionary representation
+
+    Returns
+    -------
+    dictionary
+        Graph with all directions reversed
+    """
     r_graph = defaultdict(list)
     for x, y in graph.items():
         for j in y:
             r_graph[j].append(x)
 
     return r_graph
-
-
-def find_all_paths(graph, start, path=[]):
-    path = path + [start]
-    if start not in graph:
-        return [path]
-    paths = []
-    for node in graph[start]:
-        if node not in path:
-            newpaths = find_all_paths(graph, node, path)
-            for newpath in newpaths:
-                paths.append(newpath)
-    return paths
