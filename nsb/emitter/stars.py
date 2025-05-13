@@ -1,7 +1,9 @@
+from .. import ASSETS_PATH
 import numpy as np
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+from astropy.utils.data import download_file
 import astropy.constants as c
 
 import nsb.blacksky.bandpass as bandpass
@@ -63,7 +65,9 @@ class GaiaDR3(GenericStarCatalog):
 
     def compile(self):
         # Loading GaiaDR3 main catalog file
-        main_catalog = np.load(self.config["gaia_file"])
+        gaia_down = download_file('https://zenodo.org/records/15396676/files/gaiadr3.npy', cache=True)
+
+        main_catalog = np.load(gaia_down)
         mags = [
             main_catalog["phot_g_mean_mag"],
             main_catalog["phot_bp_mean_mag"],
@@ -80,7 +84,7 @@ class GaiaDR3(GenericStarCatalog):
             method=self.config["method"],
         )
         # Loading GaiaDR3 Hipparcos supplementary catalog
-        supp_catalog = np.load(self.config["supp_file"])
+        supp_catalog = np.genfromtxt(ASSETS_PATH+'xhip_suppl.dat', skip_header=3, delimiter=',', names=True)
         mags = [supp_catalog["Vmag"], supp_catalog["Bmag"], supp_catalog["Hpmag"]]
         bpas = [bandpass.OSN_V(), bandpass.OSN_B(), bandpass.Hipp_M()]
 
@@ -104,7 +108,8 @@ class GaiaDR3Mag15(GenericStarMap):
     """
 
     def compile(self):
-        mag_map = np.load(self.config["magnitude_maps"])
+        gaia_down = download_file('https://zenodo.org/records/15396676/files/gaia_mag15plus.npy', cache=True)
+        mag_map = np.load(gaia_down)
         mags = [mag_map[0], mag_map[1], mag_map[2]]
         bpas = [bandpass.GaiaDR3_G(), bandpass.GaiaDR3_BP(), bandpass.GaiaDR3_RP()]
 
