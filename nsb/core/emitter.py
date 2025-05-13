@@ -14,7 +14,7 @@ class Emitter(Layer):
         Dictionary informing the parameters of the layer at compilation
     """
     def __init__(self, config):
-        super().__init__(config, N, mode="forward")
+        super().__init__(config, mode="forward")
 
     def forward(self, frame, rays):
         return self.emit(frame)
@@ -37,12 +37,11 @@ class Diffuse(Layer):
         Dictionary informing the parameters of the layer at compilation
     """
     def __init__(self, config):
-        super().__init__(config, N, mode="backward")
+        super().__init__(config, mode="backward")
 
     def forward(self, frame, rays):
         return NotImplementedError
 
-    @reduce_rays
     def backward(self, frame, rays):
         return self.evaluate(frame, rays)
 

@@ -1,7 +1,7 @@
 from .. import ASSETS_PATH
 from nsb.core import Ray
 from nsb.core.emitter import Emitter
-from nsb.utils.formulas import blackbody
+import nsb.utils.spectra as spectra
 
 import numpy as np
 import astropy
@@ -19,14 +19,15 @@ class Jones2013(Emitter):
 
     def compile(self):
         self.rol = np.genfromtxt(ASSETS_PATH + "lunar_rolo.dat", delimiter=",")
+        self.spectrum = spectra.SolarSpectrumRieke2008()
 
     def SPF(self, lam):
         """
         Returns the photon flux for an emitter based on absolute
         flux normalization and wavelength
         """
-        E_p = c.h.value * c.c.value / lam
-        return blackbody(lam, np.asarray([5778])[:, np.newaxis]) / E_p
+        E_p = c.h.value * c.c.value / lam * 1e9
+        return self.spectrum(lam)[:, np.newaxis] / E_p
 
     def lnA(self, p, g, s_sel):
         p_1, p_2, p_3, p_4 = 4.06054, 12.8802, np.deg2rad(-30.5858), np.deg2rad(16.7498)
@@ -71,7 +72,7 @@ class Jones2013(Emitter):
 
         return Ray(
             SkyCoord(alt=coord.alt, az=coord.az, frame=frame.AltAz).reshape(1),
-            weight=norm * self.SPF(frame.obswl.to(u.m).value) * z_switch,
+            weight=norm * self.SPF(frame.obswl.to(u.nm).value) * z_switch,
             source=type(self),
             direction="forward",
         )

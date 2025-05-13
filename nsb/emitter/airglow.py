@@ -14,7 +14,7 @@ class Noll2012(Diffuse):
         """
         Loads the airglow spectrum
         """
-        self.ag_spectra = spectra.eso_airglow()
+        self.ag_spectra = spectra.AirglowNoll2012()
 
     def SPF(self, lam):
         """

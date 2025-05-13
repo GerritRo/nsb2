@@ -4,8 +4,8 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 import astropy.constants as c
 
-import blacksky.bandpass as bandpass
-from blacksky.catalog import StarCatalog, StarMap
+import nsb.blacksky.bandpass as bandpass
+from nsb.blacksky.catalog import StarCatalog, StarMap
 
 from nsb.core import Ray
 from nsb.core.emitter import Emitter, Diffuse
