@@ -8,11 +8,6 @@ nsb2 is a python library for calculating the effect of night sky background (NSB
 nsb2 offers an interface with ctapipe, enabling simulation of simple telescope models from ctapipe geometries as well as making use of ctapipe plotting capability.
 
 # Installation
-This package can be installed via pip:
-
-```bash
-pip install nsb2
-```
 
 ## Installation from source
 The newest version of this package can be built from source by cloning this repository and manually installing:
@@ -29,8 +24,7 @@ nsb2 requires the following packages:
 - [numpy](https://github.com/numpy/numpy)
 - [scikit-learn](https://github.com/scikit-learn/scikit-learn)
 - [scipy](https://github.com/scipy/scipy)
-- blacksky
-- histlite
+- [histlite](https://github.com/GerritRo/histlite)
 
 # Quick Start
 An [example](examples/HESSI_Tutorial.ipynb) based on the HESS-I telescope is provided as a Jupyter Notebook together with other notebooks in this folder.

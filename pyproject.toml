@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nsb2"
 authors = [
-    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff(at)fau.de"},
+    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff@fau.de"},
 ]
 description = "Predicting Night Sky Background (NSB) in IACTs using Pseudo-Raytracing"
 readme = "README.md"
@@ -17,7 +17,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "blacksky @ git+https://git.ecap.work/groellinghoff/blacksky.git",
     "histlite @ git+https://github.com/GerritRo/histlite.git",
     "numpy",
     "scikit-learn",
