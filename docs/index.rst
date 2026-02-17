@@ -6,19 +6,7 @@ nsb2
 nsb2 is a Python library for calculating the effect of night sky background (NSB)
 on telescopes with large pixel areas, namely imaging air Cherenkov telescopes
 (IACTs). It includes models from theory and experimental data for star light,
-zodiacal light, moon light, diffuse galactic light, and airglow.
-
-.. code-block:: python
-
-   from nsb2.core.pipeline import Pipeline
-   from nsb2.core.instrument import Instrument
-
-   # Set up a telescope instrument
-   instrument = Instrument.from_config("HESSI")
-
-   # Create and run a simulation pipeline
-   pipeline = Pipeline(instrument)
-   result = pipeline.run()
+zodiacal light, moon light and airglow.
 
 ----
 

@@ -67,7 +67,5 @@ nsb2 depends on:
      - HEALPix sky pixelization
    * - `scikit-learn <https://scikit-learn.org/>`_
      - BallTree spatial queries
-   * - `histlite <https://github.com/GerritRo/histlite>`_
-     - Histogram utilities
    * - `dust_extinction <https://dust-extinction.readthedocs.io/>`_
      - Dust extinction models

@@ -46,11 +46,23 @@ Citation
 If you use nsb2 in your research, please cite::
 
    @misc{roellinghoff_2025_nsb2,
-       author = {Roellinghoff, Gerrit; Spencer, Samuel},
+       author = {Roellinghoff, Gerrit},
        title = {nsb2: Simulating Night Sky Background for IACTs},
        url = {https://github.com/GerritRo/nsb2},
        year = {2025}
    }
+
+Please also cite the original NSB paper using nsb2:
+
+@article{roellinghoff_2025_advanced,
+  title={Advanced modelling of the night sky background light for imaging atmospheric Cherenkov telescopes},
+  author={Roellinghoff, Gerrit and Spencer, Samuel T and Funk, Stefan},
+  journal={Astronomy \& Astrophysics},
+  volume={698},
+  pages={A212},
+  year={2025},
+  publisher={EDP Sciences}
+}
 
 Please also cite the origin of all telescope, atmospheric, and emission models
 you use in your work.

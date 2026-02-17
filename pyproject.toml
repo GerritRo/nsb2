@@ -35,7 +35,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.22.0",
     "scikit-learn>=1.0.0",
@@ -80,7 +80,7 @@ nsb2 = ["py.typed", "data/*", "instrument/response/*.npz", "instrument/bandpass/
 version = {attr = "nsb2.__version__"}
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 warn_return_any = false
 warn_unused_configs = true
 check_untyped_defs = true
@@ -90,7 +90,7 @@ follow_imports = "silent"
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "T10"]

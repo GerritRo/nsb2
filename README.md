@@ -12,21 +12,19 @@ nsb2 is a Python library for calculating the effect of night sky background (NSB
 - Star light
 - Zodiacal light
 - Moon light
-- Diffuse galactic light
 - Airglow
 
 It also models atmospheric effects such as Rayleigh scattering, Mie scattering, single scattering albedo, and aerosol concentration.
 
-Telescope models can be created from raytracing data or using simple radial PSF models. Both forward and backward propagation of light through telescope/atmosphere/source layers is supported.
+Telescope models can be created from raytracing data. It automatically decides the render direction for source types and supports mapping catalog data via HEALPix for efficient in-scattering lookups.
 
 ## Features
 
 - Multiple NSB emission models (stars, zodiacal, moon, airglow)
 - Atmospheric scattering and absorption modeling
-- Telescope response from raytracing data or radial PSF
+- Telescope response from raytracing data
 - Forward and backward light propagation
-- Computational graph created at initialization
-- Interface with ctapipe for telescope modeling and plotting
+- Interface with ctapipe for plotting
 
 ## Installation
 
@@ -40,24 +38,6 @@ git clone https://github.com/GerritRo/nsb2.git
 cd nsb2
 pip install -e ".[dev]"
 ```
-
-## Quick Start
-
-```python
-from nsb2.core.pipeline import Pipeline
-from nsb2.core.instrument import Instrument
-
-# Set up a telescope instrument
-instrument = Instrument.from_config("HESSI")
-
-# Create a simulation pipeline
-pipeline = Pipeline(instrument)
-
-# Run the simulation
-result = pipeline.run()
-```
-
-See the [example notebooks](examples/) for detailed tutorials on HESS-I and LST telescopes.
 
 ## Documentation
 
@@ -84,6 +64,19 @@ If you use nsb2 in a scientific publication, please cite this repository:
     title = {nsb2: Simulating Night Sky Background for IACTs},
     url = {https://github.com/GerritRo/nsb2},
     year = {2025}
+}
+```
+Please also cite the original NSB paper using nsb2:
+
+```bibtex
+@article{roellinghoff_2025_advanced,
+  title={Advanced modelling of the night sky background light for imaging atmospheric Cherenkov telescopes},
+  author={Roellinghoff, Gerrit and Spencer, Samuel T and Funk, Stefan},
+  journal={Astronomy \& Astrophysics},
+  volume={698},
+  pages={A212},
+  year={2025},
+  publisher={EDP Sciences}
 }
 ```
 
