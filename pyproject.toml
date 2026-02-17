@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nsb2"
+dynamic = ["version"]
+description = "Simulating Night Sky Background for Imaging Air Cherenkov Telescopes"
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff@fau.de"}
+]
+maintainers = [
+    {name = "Gerrit Roellinghoff", email = "gerrit.roellinghoff@fau.de"}
+]
+keywords = [
+    "night-sky-background",
+    "nsb",
+    "cherenkov",
+    "telescope",
+    "iact",
+    "astronomy",
+    "astrophysics",
+    "simulation"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22.0",
+    "scikit-learn>=1.0.0",
+    "scipy>=1.7.0",
+    "astropy>=5.0",
+    "healpy>=1.15.0",
+    "dust_extinction>=1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-doctestplus>=0.12",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "ruff>=0.1.0",
+    "commitizen>=3.12.0",
+]
+docs = [
+    "sphinx",
+    "furo",
+    "sphinx-automodapi",
+    "sphinx-design",
+    "myst-nb",
+]
+
+[project.urls]
+Homepage = "https://github.com/GerritRo/nsb2"
+Documentation = "https://gerritro.github.io/nsb2/"
+Repository = "https://github.com/GerritRo/nsb2.git"
+Issues = "https://github.com/GerritRo/nsb2/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nsb2*"]
+exclude = ["tests*", "examples*"]
+
+[tool.setuptools.package-data]
+nsb2 = ["py.typed", "data/*", "instrument/response/*.npz", "instrument/bandpass/*.dat"]
+
+[tool.setuptools.dynamic]
+version = {attr = "nsb2.__version__"}
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = false
+warn_unused_configs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+packages = ["nsb2"]
+follow_imports = "silent"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "T10"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+omit = [
+    "nsb2/__init__*",
+    "nsb2/conftest.py",
+    "nsb2/version*",
+    "tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "except ImportError",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@overload",
+]
+
+# -- Commitizen (conventional commits + changelog) --
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_files = [
+    "nsb2/__init__.py:__version__",
+]
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+major_version_zero = true
