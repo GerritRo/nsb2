@@ -135,9 +135,9 @@ class EffectiveApertureInstrument(Instrument):
     """Instrument with per-pixel effective aperture response functions."""
 
     def __init__(self, response: dict, bandpass: Bandpass) -> None:
-        x = np.asarray(response['x'])          
-        y = np.asarray(response['y'])          
-        vals = np.asarray(response['values']) 
+        x = np.asarray(response['x'])
+        y = np.asarray(response['y'])
+        vals = np.asarray(response['values'])
 
         self._pix_pos = np.stack([np.mean(x, axis=1),
                                   np.mean(y, axis=1)]).T
@@ -149,8 +149,8 @@ class EffectiveApertureInstrument(Instrument):
         self._fov = ((self._pix_bins[:, 1].min(), self._pix_bins[:, 1].max()),
                      (self._pix_bins[:, 0].min(), self._pix_bins[:, 0].max()))
 
-        inner = simps(vals, x=x[:, np.newaxis, :], axis=-1)  
-        self._pix_area_sr = np.asarray(simps(inner, x=y, axis=-1)) 
+        inner = simps(vals, x=x[:, np.newaxis, :], axis=-1)
+        self._pix_area_sr = np.asarray(simps(inner, x=y, axis=-1))
 
         self._response_values = vals
         self._resp_x0 = x[:, 0]
