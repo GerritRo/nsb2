@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import astropy.units as u
 import numpy as np
@@ -110,7 +110,7 @@ class ExplicitDirectSolver(DirectSolver):
 
     def compute_rates(self, source: Source, field: SourceField, atmosphere: Atmosphere, bandpass: Bandpass) -> u.Quantity:
         resolved = field.resolve_spectra(bandpass)
-        coords = np.atleast_1d(resolved.coords)
+        coords = cast(SkyCoord, np.atleast_1d(resolved.coords))
         ext_weights = atmosphere.extinction(
             coords.alt.rad, coords.az.rad, resolved.wvl)
         return resolved.integrate(extra_weights=ext_weights[..., None])
@@ -160,7 +160,7 @@ class LUTDirectSolver(DirectSolver):
                 f"No compiled LUT for {type(source).__name__}. "
                 f"Call compile() before predict()."
             ) from None
-        coords = np.atleast_1d(field.coords)
+        coords = cast(SkyCoord, np.atleast_1d(field.coords))
         raw_rates = lut(np.column_stack([coords.alt.rad, field.spectral_data]))
         return field.weights * raw_rates
 
