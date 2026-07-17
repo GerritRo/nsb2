@@ -15,3 +15,9 @@ def MSTNorth():
     response = np.load(RESPONSE_PATH / "MST_North_like.npz")
     bandpass = Bandpass.from_csv(BANDPASS_PATH / "MST_like.dat")
     return EffectiveApertureInstrument(response, bandpass)
+
+def SST():
+    response = np.load(RESPONSE_PATH / "SST_like.npz")
+    bandpass = Bandpass.from_csv(BANDPASS_PATH / "SST_like.dat")
+    return EffectiveApertureInstrument(response, bandpass)
+
