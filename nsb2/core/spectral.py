@@ -70,7 +70,7 @@ class SpectralGrid:
         return SpectralGrid(self.points, wvl, flx)
 
     def integrate(self) -> RateGrid:
-        rate = si.simpson(self.flx, x=self.wvl, axis=-2) * self.flx.unit * self.wvl.unit
+        rate = si.simpson(self.flx.value, x=self.wvl.value, axis=-2) * self.flx.unit * self.wvl.unit
         return RateGrid(self.points, rate)
 
     def __mul__(self, value) -> SpectralGrid:
