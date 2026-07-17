@@ -61,7 +61,7 @@ class ResolvedField:
         if extra_weights is not None:
             integrand = extra_weights * integrand
         rate_unit = self.flx.unit * self.wvl.unit * self.weights.unit
-        return simpson(integrand, x=self.wvl, axis=-2) * rate_unit
+        return simpson(integrand.value, x=self.wvl.value, axis=-2) * rate_unit
 
 
 @dataclass

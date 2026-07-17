@@ -32,7 +32,8 @@ class Bandpass:
         hdul = fits.open(f_down)
         wvl = hdul[1].data['WAVELENGTH'] * u.angstrom
         flx = hdul[1].data['FLUX'] * u.erg / u.second / u.cm**2 / u.angstrom
-        return si.simpson(x=wvl, y=wvl * self(wvl) * flx) * u.erg / u.second / u.cm**2
+        z = wvl * self(wvl) * flx
+        return si.simpson(y=z.value, x=wvl.value) * z.unit * wvl.unit
 
     @classmethod
     def from_SVO(cls, filter_id: str, cache: bool = True) -> Bandpass:

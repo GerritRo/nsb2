@@ -21,7 +21,8 @@ def create_color_grid(magnitude, color, color_range, spec_library,
 
     def calculate_magnitude(wvl, flx, bandpass):
         z = flx * bandpass(wvl) * wvl
-        return -2.5 * np.log10(si.simpson(y=z, x=wvl) * z.unit / bandpass.vegazero)
+        integral = si.simpson(y=z.value, x=wvl.value) * z.unit * wvl.unit
+        return -2.5 * np.log10(integral / bandpass.vegazero)
 
     def redden_by_dust_extinction(EBVs):
         wvl = spec_library.wvl

@@ -131,7 +131,7 @@ class ExplicitScatteredSolver(ScatteredSolver):
         rate_unit = (resolved.flx.unit * resolved.wvl.unit
                      * resolved.weights.unit * scat_weights.unit)
         integrand = (scat_weights * resolved.weights)[..., None] * resolved.flx
-        return simpson(integrand, x=resolved.wvl, axis=-2) * rate_unit
+        return simpson(integrand.value, x=resolved.wvl.value, axis=-2) * rate_unit
 
 
 class LUTDirectSolver(DirectSolver):
