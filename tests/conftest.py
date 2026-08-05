@@ -13,7 +13,7 @@ def make_observation(alt=70, az=180):
     and pixel positions are offsets from that origin.
     """
     loc = EarthLocation(lat=-23.27 * u.deg, lon=16.5 * u.deg, height=1800 * u.m)
-    t = Time('2024-06-15T22:00:00')
+    t = Time("2024-06-15T22:00:00")
     altaz = AltAz(obstime=t, location=loc)
     pointing = SkyCoord(alt=alt * u.deg, az=az * u.deg, frame=altaz)
     return pointing.skyoffset_frame()

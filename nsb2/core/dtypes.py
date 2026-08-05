@@ -17,10 +17,11 @@ class SourceField:
     This is the unified output of all source queries — point sources,
     diffuse fields, and ephemeris bodies all produce this type.
     """
-    coords: SkyCoord              # (N,) positions
-    weights: np.ndarray           # (N, C_w) brightness weights (Quantity)
-    spectral_data: np.ndarray     # (N, D) indices into spectral grid
-    spectral_grid: SpectralGrid   # shared grid for spectral resolution
+
+    coords: SkyCoord  # (N,) positions
+    weights: np.ndarray  # (N, C_w) brightness weights (Quantity)
+    spectral_data: np.ndarray  # (N, D) indices into spectral grid
+    spectral_grid: SpectralGrid  # shared grid for spectral resolution
     radiance_field: bool = False  # Marking if it is a radiance
 
     def resolve_spectra(self, bandpass: Bandpass) -> ResolvedField:
@@ -38,10 +39,11 @@ class SourceField:
 @dataclass
 class ResolvedField:
     """Sources with fully resolved spectra (wavelength axis present)."""
+
     coords: SkyCoord
-    weights: u.Quantity     # (N, C_w)
-    wvl: u.Quantity         # (W,) wavelength grid (Quantity)
-    flx: u.Quantity         # (N, W, C_comp) flux array (Quantity)
+    weights: u.Quantity  # (N, C_w)
+    wvl: u.Quantity  # (W,) wavelength grid (Quantity)
+    flx: u.Quantity  # (N, W, C_comp) flux array (Quantity)
     radiance_field: bool
 
     def integrate(self, extra_weights: np.ndarray | None = None) -> u.Quantity:
@@ -72,14 +74,18 @@ class PixelRefs:
     - indices[i] is an array of source indices assigned to pixel i
     - weights[i] is the corresponding instrument response weights
     """
-    indices: list[np.ndarray]                # list of N_pix arrays of int
-    weights: list[u.Quantity] | None = None  # list of N_pix arrays of Quantity (m^2 or m^2*sr), or None before instrument fills them
+
+    indices: list[np.ndarray]  # list of N_pix arrays of int
+    weights: list[u.Quantity] | None = (
+        None  # list of N_pix arrays of Quantity (m^2 or m^2*sr), or None before instrument fills them
+    )
 
 
 @dataclass
 class Prediction:
     """A single prediction result from one source per one light path."""
-    rates: np.ndarray     # (N_pix, 3) min/med/max
-    indirect: bool        # True if from scattering path
+
+    rates: np.ndarray  # (N_pix, 3) min/med/max
+    indirect: bool  # True if from scattering path
     source_name: str = ""
     path_name: str = ""

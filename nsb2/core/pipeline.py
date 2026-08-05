@@ -12,6 +12,7 @@ from nsb2.core.sources import Source
 @runtime_checkable
 class PipelineLike(Protocol):
     """Protocol for pipeline objects (Pipeline and CompositePipeline)."""
+
     def compile(self, **kwargs) -> float: ...
     def predict(self, observation) -> list[Prediction]: ...
 
@@ -33,8 +34,7 @@ class Pipeline:
         cost = 0.0
         for path in self.paths:
             for source in self.sources:
-                cost += path.compile(source, self.instrument,
-                                     self.atmosphere, **kwargs)
+                cost += path.compile(source, self.instrument, self.atmosphere, **kwargs)
         return cost
 
     def predict(self, observation) -> list[Prediction]:
@@ -47,8 +47,7 @@ class Pipeline:
         results = []
         for source in self.sources:
             for path in self.paths:
-                pred = path.compute(
-                    source, self.instrument, self.atmosphere, observation)
+                pred = path.compute(source, self.instrument, self.atmosphere, observation)
                 pred.source_name = source.name
                 pred.path_name = path.name
                 results.append(pred)

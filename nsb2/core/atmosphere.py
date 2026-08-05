@@ -12,14 +12,11 @@ def haversine(delta_lon, lat1, lat2):
     sin_delta_lat = np.sin(delta_lat / 2) ** 2
     sin_sum_lat = np.sin((lat1 + lat2) / 2) ** 2
     sin_delta_lon = np.sin(delta_lon / 2) ** 2
-    return 2 * np.arcsin(
-        np.sqrt(sin_delta_lat + (1 - sin_delta_lat - sin_sum_lat) * sin_delta_lon)
-    )
+    return 2 * np.arcsin(np.sqrt(sin_delta_lat + (1 - sin_delta_lat - sin_sum_lat) * sin_delta_lon))
 
 
 class Atmosphere(ABC):
-    """Base class for atmospheric models.
-    """
+    """Base class for atmospheric models."""
 
     def extinction(self, alt, az, wvl: u.Quantity) -> np.ndarray:
         """Compute extinction weights along line of sight.

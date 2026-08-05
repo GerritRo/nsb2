@@ -11,8 +11,7 @@ from nsb2.core.spectral import SpectralGrid
 from .. import ASSETS_PATH
 
 
-def create_color_grid(magnitude, color, color_range, spec_library,
-                      EBVs=None, extmod=None):
+def create_color_grid(magnitude, color, color_range, spec_library, EBVs=None, extmod=None):
     """Build a SpectralGrid mapping photometric color to spectra."""
     if EBVs is None:
         EBVs = np.linspace(0, 10, 20)
@@ -37,8 +36,9 @@ def create_color_grid(magnitude, color, color_range, spec_library,
     ebv_interp = np.zeros((len(synth_color), len(color_space)))
     for i, color_arr in enumerate(synth_color):
         c_sort = np.argsort(color_arr)
-        ebv_interp[i] = np.interp(color_space, color_arr[c_sort], EBVs[c_sort],
-                                   left=np.nan, right=np.nan)
+        ebv_interp[i] = np.interp(
+            color_space, color_arr[c_sort], EBVs[c_sort], left=np.nan, right=np.nan
+        )
 
     wvl, flx = redden_by_dust_extinction(ebv_interp)
     flx = flx.T / (h * c / wvl[:, np.newaxis, np.newaxis])
@@ -47,16 +47,18 @@ def create_color_grid(magnitude, color, color_range, spec_library,
 
 def PicklesTRDSAtlas1998():
     """Load the Pickles 1998 TRDS stellar spectral atlas."""
-    file = np.genfromtxt(ASSETS_PATH / 'pickles1998_trds_atlas.dat')
-    return SpectralGrid([], file[0] * u.angstrom,
-                        file[1:].T * u.erg / u.angstrom / u.s / u.cm**2)
+    file = np.genfromtxt(ASSETS_PATH / "pickles1998_trds_atlas.dat")
+    return SpectralGrid([], file[0] * u.angstrom, file[1:].T * u.erg / u.angstrom / u.s / u.cm**2)
 
 
 def SolarSpectrumRieke2008():
     """Load the Rieke 2008 solar reference spectrum."""
     f_down = download_file(
-        'https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/solsys/solar_spec.fits',
-        cache=True)
+        "https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/solsys/solar_spec.fits",
+        cache=True,
+    )
     hdul = fits.open(f_down)
-    return (hdul[1].data['WAVELENGTH'] * u.angstrom,
-            hdul[1].data['FLUX'] * u.erg / u.s / u.cm**2 / u.angstrom)
+    return (
+        hdul[1].data["WAVELENGTH"] * u.angstrom,
+        hdul[1].data["FLUX"] * u.erg / u.s / u.cm**2 / u.angstrom,
+    )

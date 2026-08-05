@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
 
 class LightPath(ABC):
-    """A physical light path from source to instrument pixel.
-    """
+    """A physical light path from source to instrument pixel."""
 
     name: str = ""
 
@@ -76,28 +75,27 @@ class DirectPath(LightPath):
         self.name = name or type(self).__name__
         self.solver = solver or ExplicitDirectSolver()
         if not isinstance(self.solver, DirectSolver):
-            raise TypeError(
-                f"DirectPath requires a DirectSolver, got {type(self.solver).__name__}")
+            raise TypeError(f"DirectPath requires a DirectSolver, got {type(self.solver).__name__}")
 
-    def compile(self, source: Source, instrument: Instrument, atmosphere: Atmosphere, **kwargs) -> float:
+    def compile(
+        self, source: Source, instrument: Instrument, atmosphere: Atmosphere, **kwargs
+    ) -> float:
         return self.solver.compile(source, instrument, atmosphere, **kwargs)
 
-    def compute(self, source: Source, instrument: Instrument, atmosphere: Atmosphere, observation) -> Prediction:
+    def compute(
+        self, source: Source, instrument: Instrument, atmosphere: Atmosphere, observation
+    ) -> Prediction:
         pix_coords = instrument.pixel_coords(observation)
-        field, pixel_refs = source.query_direct(
-            observation, pix_coords, instrument.pixel_radii())
+        field, pixel_refs = source.query_direct(observation, pix_coords, instrument.pixel_radii())
 
         if field.spectral_data.shape[0] == 0:
-            return Prediction(rates=np.zeros((len(pix_coords), 3))*u.Hz, indirect=False)
+            return Prediction(rates=np.zeros((len(pix_coords), 3)) * u.Hz, indirect=False)
 
         pixel_refs = instrument.compute_pixel_weights(field, pixel_refs, observation)
 
-        rates = self.solver.compute_rates(
-            source, field, atmosphere, instrument.bandpass)
+        rates = self.solver.compute_rates(source, field, atmosphere, instrument.bandpass)
 
-        return Prediction(
-            rates=instrument.project_discrete(rates, pixel_refs),
-            indirect=False)
+        return Prediction(rates=instrument.project_discrete(rates, pixel_refs), indirect=False)
 
 
 class ScatteredPath(LightPath):
@@ -128,24 +126,27 @@ class ScatteredPath(LightPath):
         self.eval_grid_n = eval_grid_n
         if not isinstance(self.solver, ScatteredSolver):
             raise TypeError(
-                f"ScatteredPath requires a ScatteredSolver, "
-                f"got {type(self.solver).__name__}")
+                f"ScatteredPath requires a ScatteredSolver, got {type(self.solver).__name__}"
+            )
 
-    def compile(self, source: Source, instrument: Instrument, atmosphere: Atmosphere, **kwargs) -> float:
+    def compile(
+        self, source: Source, instrument: Instrument, atmosphere: Atmosphere, **kwargs
+    ) -> float:
         return self.solver.compile(source, instrument, atmosphere, **kwargs)
 
-    def compute(self, source: Source, instrument: Instrument, atmosphere: Atmosphere, observation) -> Prediction:
+    def compute(
+        self, source: Source, instrument: Instrument, atmosphere: Atmosphere, observation
+    ) -> Prediction:
         field = source.query_scattered(observation, nside=self.nside)
 
         if field.spectral_data.shape[0] == 0:
             n_pix = len(instrument.pixel_coords(observation))
-            return Prediction(rates=np.zeros((n_pix, 3))*u.Hz, indirect=True)
+            return Prediction(rates=np.zeros((n_pix, 3)) * u.Hz, indirect=True)
 
         eval_coords = instrument.eval_grid(observation, n=self.eval_grid_n)
 
         rates = self.solver.compute_rates(
-            source, field, atmosphere, instrument.bandpass, eval_coords)
+            source, field, atmosphere, instrument.bandpass, eval_coords
+        )
 
-        return Prediction(
-            rates=instrument.project_continuous(rates, eval_coords),
-            indirect=True)
+        return Prediction(rates=instrument.project_continuous(rates, eval_coords), indirect=True)

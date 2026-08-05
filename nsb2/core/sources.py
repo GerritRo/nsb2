@@ -78,8 +78,7 @@ class Source(ABC):
 
 
 class RadianceSource(Source):
-    """Base for diffuse/radiance sources that map 1:1 onto pixels.
-    """
+    """Base for diffuse/radiance sources that map 1:1 onto pixels."""
 
     _spectral_grid: SpectralGrid
 
@@ -139,13 +138,15 @@ class CatalogSource(Source):
         return self._spectral_grid
 
     def build_balltree(self) -> None:
-        self.balltree = BallTree(self._skycoord2latlon(self.coords), metric='haversine')
+        self.balltree = BallTree(self._skycoord2latlon(self.coords), metric="haversine")
 
     def apply_space_motion(self, time) -> None:
         self.coords = self.coords.apply_space_motion(new_obstime=time)
         self.build_balltree()
 
-    def query_direct(self, observation, pixel_coords: SkyCoord, pixel_radii: np.ndarray) -> tuple[SourceField, PixelRefs]:
+    def query_direct(
+        self, observation, pixel_coords: SkyCoord, pixel_radii: np.ndarray
+    ) -> tuple[SourceField, PixelRefs]:
         sky_coords = pixel_coords.transform_to(observation.origin)
         refs = self.balltree.query_radius(self._skycoord2latlon(sky_coords), pixel_radii)
         unique_indices, inverse_indices = np.unique(np.concatenate(refs), return_inverse=True)
@@ -164,7 +165,7 @@ class CatalogSource(Source):
         return field, pixel_refs
 
     def query_scattered(self, observation, nside: int = 64) -> SourceField:
-        zenith = SkyCoord(0, 90, unit='deg', frame=observation.origin)
+        zenith = SkyCoord(0, 90, unit="deg", frame=observation.origin)
         refs = self.balltree.query_radius(self._skycoord2latlon(zenith), np.pi / 2)
         unique_indices = np.unique(np.concatenate(refs))
 
@@ -178,34 +179,58 @@ class CatalogSource(Source):
 
     def to_map(self, nside: int) -> HEALPixSource:
         npix = hp.nside2npix(nside)
-        hp_inds = hp.ang2pix(nside, self.coords.spherical.lon.deg,
-                             self.coords.spherical.lat.deg, nest=True, lonlat=True)
-        weight = np.vstack([np.bincount(hp_inds, self.weight[:, i], npix)
-                            for i in range(self.weight.shape[1])])
+        hp_inds = hp.ang2pix(
+            nside,
+            self.coords.spherical.lon.deg,
+            self.coords.spherical.lat.deg,
+            nest=True,
+            lonlat=True,
+        )
+        weight = np.vstack(
+            [np.bincount(hp_inds, self.weight[:, i], npix) for i in range(self.weight.shape[1])]
+        )
         if self.data.shape[1] == 0:
             data = np.empty((0, npix))
         else:
             data = np.where(np.isnan(self.data), np.nanmean(self.data, axis=0), self.data)
-            data = np.vstack([np.bincount(hp_inds, data[:, i] * self.weight[:, i], npix) /
-                              np.bincount(hp_inds, self.weight[:, i], npix)
-                              for i in range(data.shape[1])])
+            data = np.vstack(
+                [
+                    np.bincount(hp_inds, data[:, i] * self.weight[:, i], npix)
+                    / np.bincount(hp_inds, self.weight[:, i], npix)
+                    for i in range(data.shape[1])
+                ]
+            )
         area_corr = hp.nside2pixarea(nside) * u.radian**2
-        return HEALPixSource(self.frame, weight / area_corr, data, self._spectral_grid, name=self.name)
+        return HEALPixSource(
+            self.frame, weight / area_corr, data, self._spectral_grid, name=self.name
+        )
 
     def __getitem__(self, item) -> CatalogSource:
-        return CatalogSource(self.coords[item], self.weight[item],
-                             self.data[item], self._spectral_grid, name=self.name)
+        return CatalogSource(
+            self.coords[item],
+            self.weight[item],
+            self.data[item],
+            self._spectral_grid,
+            name=self.name,
+        )
 
     def _skycoord2latlon(self, skycoord: SkyCoord) -> np.ndarray:
         skycoord = _transform_to_frame(skycoord, self.frame)
         return np.vstack([skycoord.spherical.lat.rad, skycoord.spherical.lon.rad]).T
 
     @classmethod
-    def from_photometric_catalog(cls, coords, magnitude, color, spectral_library, name="") -> CatalogSource:
+    def from_photometric_catalog(
+        cls, coords, magnitude, color, spectral_library, name=""
+    ) -> CatalogSource:
         color_range = [np.nanmin(color[1]), np.nanmax(color[1])]
         color_grid = create_color_grid(magnitude[0], color[0], color_range, spectral_library)
-        return cls(coords, 10**(-0.4 * magnitude[1]) * u.dimensionless_unscaled,
-                   color[1], color_grid, name=name)
+        return cls(
+            coords,
+            10 ** (-0.4 * magnitude[1]) * u.dimensionless_unscaled,
+            color[1],
+            color_grid,
+            name=name,
+        )
 
 
 class EphemerisSource(Source):
@@ -242,13 +267,15 @@ class EphemerisSource(Source):
     def _empty_field(self) -> SourceField:
         """Return an empty SourceField (no sources above horizon)."""
         return SourceField(
-            coords=SkyCoord([], [], unit='deg', frame='altaz'),
+            coords=SkyCoord([], [], unit="deg", frame="altaz"),
             weights=np.empty((0, 1)) * u.dimensionless_unscaled,
             spectral_data=np.empty((0, 1)),
             spectral_grid=self._spectral_grid,
         )
 
-    def query_direct(self, observation, pixel_coords: SkyCoord, pixel_radii: np.ndarray) -> tuple[SourceField, PixelRefs]:
+    def query_direct(
+        self, observation, pixel_coords: SkyCoord, pixel_radii: np.ndarray
+    ) -> tuple[SourceField, PixelRefs]:
         b_coord, weight, data = self._query_body(observation.origin.obstime)
         b_coord = b_coord.transform_to(observation.origin)
 
@@ -328,7 +355,7 @@ class LonLatSource(RadianceSource):
     def query_scattered(self, observation, nside: int = 64) -> SourceField:
         lon, lat = hp.pix2ang(nside, np.arange(hp.nside2npix(nside)), lonlat=True)
         lon, lat = lon[lat > 0], lat[lat > 0]
-        h_coords = SkyCoord(lon, lat, unit='deg', frame=observation.origin)
+        h_coords = SkyCoord(lon, lat, unit="deg", frame=observation.origin)
         weight, data = self._query_coords(h_coords)
         weight = weight * hp.nside2pixarea(nside) * u.radian**2
 
@@ -367,11 +394,13 @@ class HEALPixSource(RadianceSource):
 
     def query_scattered(self, observation, nside: int = 64) -> SourceField:
         lon, lat = hp.pix2ang(nside, np.arange(hp.nside2npix(nside)), nest=True, lonlat=True)
-        h_coords = SkyCoord(lon, lat, unit='deg', frame=self.frame).transform_to(observation.origin)
+        h_coords = SkyCoord(lon, lat, unit="deg", frame=self.frame).transform_to(observation.origin)
 
-        weight = hp.ud_grade(self.weight.value, nside,
-                             order_in='NESTED', order_out='NESTED') * self.weight.unit
-        data = hp.ud_grade(self.data, nside, order_in='NESTED', order_out='NESTED')
+        weight = (
+            hp.ud_grade(self.weight.value, nside, order_in="NESTED", order_out="NESTED")
+            * self.weight.unit
+        )
+        data = hp.ud_grade(self.data, nside, order_in="NESTED", order_out="NESTED")
 
         weight = np.atleast_2d(weight).T
         data = np.atleast_2d(data).T
@@ -388,8 +417,10 @@ class HEALPixSource(RadianceSource):
         )
 
     @classmethod
-    def from_photometric_map(cls, frame, magnitude, color, spectral_library, name="") -> HEALPixSource:
+    def from_photometric_map(
+        cls, frame, magnitude, color, spectral_library, name=""
+    ) -> HEALPixSource:
         color_range = [np.nanmin(color[1]), np.nanmax(color[1])]
         color_grid = create_color_grid(magnitude[0], color[0], color_range, spectral_library)
         area_corr = hp.nside2pixarea(hp.npix2nside(magnitude[1].shape[0])) * u.radian**2
-        return cls(frame, 10**(-0.4 * magnitude[1]) / area_corr, color[1], color_grid, name=name)
+        return cls(frame, 10 ** (-0.4 * magnitude[1]) / area_corr, color[1], color_grid, name=name)

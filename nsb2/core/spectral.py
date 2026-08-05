@@ -28,22 +28,22 @@ class Bandpass:
     @cached_property
     def vegazero(self) -> u.Quantity:
         """Vega zeropoint flux — computed on first access, not at construction."""
-        f_down = download_file(CALSPEC_URL + 'alpha_lyr_stis_011.fits', cache=True)
+        f_down = download_file(CALSPEC_URL + "alpha_lyr_stis_011.fits", cache=True)
         hdul = fits.open(f_down)
-        wvl = hdul[1].data['WAVELENGTH'] * u.angstrom
-        flx = hdul[1].data['FLUX'] * u.erg / u.second / u.cm**2 / u.angstrom
+        wvl = hdul[1].data["WAVELENGTH"] * u.angstrom
+        flx = hdul[1].data["FLUX"] * u.erg / u.second / u.cm**2 / u.angstrom
         return si.simpson(x=wvl, y=wvl * self(wvl) * flx) * u.erg / u.second / u.cm**2
 
     @classmethod
     def from_SVO(cls, filter_id: str, cache: bool = True) -> Bandpass:
         f_down = download_file(SVO_TABLE_URL + filter_id, cache=cache)
         table = votable.parse_single_table(f_down)
-        return cls(table.array.data['Wavelength'] * u.angstrom, table.array.data['Transmission'])
+        return cls(table.array.data["Wavelength"] * u.angstrom, table.array.data["Transmission"])
 
     @classmethod
     def from_csv(cls, file) -> Bandpass:
         arr = np.genfromtxt(file, delimiter=",", names=True)
-        lam = arr['wvl'] * u.nm
+        lam = arr["wvl"] * u.nm
         trx = recfc.drop_fields(arr, "wvl", usemask=False)
         return cls(lam, np.array(trx.tolist()).prod(axis=1))
 
@@ -93,4 +93,4 @@ class RateGrid:
         return rgi(xi) * self.rate.unit
 
     def __mul__(self, value) -> RateGrid:
-        return RateGrid(self.points, np.einsum('b...,ab->ab...', self.rate, value))
+        return RateGrid(self.points, np.einsum("b...,ab->ab...", self.rate, value))

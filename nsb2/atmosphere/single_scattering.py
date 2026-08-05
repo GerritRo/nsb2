@@ -47,7 +47,7 @@ class SingleScatteringAtmosphere(Atmosphere):
     @staticmethod
     def _henyey_greenstein(g, theta):
         """Henyey-Greenstein phase function."""
-        gsq = g ** 2
+        gsq = g**2
         return 1 / (4 * np.pi) * (1 - gsq) / (1 + gsq - 2 * g * np.cos(theta)) ** 1.5
 
     def _compute_extinction(self, alt, az, wvl: u.Quantity) -> np.ndarray:
@@ -60,7 +60,9 @@ class SingleScatteringAtmosphere(Atmosphere):
         tau = tau_r + tau_m + self.tau_absorption(wvl)
         theta = haversine(eval_az - az, eval_alt, alt)
 
-        return self._indicatrix(tau_r, tau_m, tau, theta) * self._gradation(tau, np.pi / 2 - eval_alt, np.pi / 2 - alt)
+        return self._indicatrix(tau_r, tau_m, tau, theta) * self._gradation(
+            tau, np.pi / 2 - eval_alt, np.pi / 2 - alt
+        )
 
     def _indicatrix(self, tau_r, tau_m, tau, theta):
         frac_r = tau_r / tau
@@ -72,7 +74,7 @@ class SingleScatteringAtmosphere(Atmosphere):
     def _gradation(self, tau, Z, z):
         sec_Z = self.X(Z)
         sec_z = self.X(z)
-        with np.errstate(divide='ignore', invalid='ignore'):
+        with np.errstate(divide="ignore", invalid="ignore"):
             sec_diff = sec_Z / (sec_z - sec_Z)
             exp_diff = np.exp(-tau * sec_Z) - np.exp(-tau * sec_z)
             return np.where(Z == z, sec_Z * tau * np.exp(-sec_Z * tau), sec_diff * exp_diff)

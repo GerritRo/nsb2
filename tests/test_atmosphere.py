@@ -9,12 +9,16 @@ class TestSingleScatteringAtmosphere:
     @pytest.fixture
     def simple_atmosphere(self):
         """Create a minimal atmosphere with one Rayleigh-like scattering component."""
+
         def X(z):
             return 1 / np.cos(np.clip(z, 0, np.deg2rad(85)))  # simple sec(z)
+
         def tau_rayleigh(wvl):
             return 0.1 * (400 * u.nm / wvl) ** 4
+
         def tau_abs(wvl):
             return 0.01 * np.ones_like(wvl.value)
+
         return SingleScatteringAtmosphere(
             airmass_func=X,
             tau_rayleigh=tau_rayleigh,
@@ -50,9 +54,8 @@ class TestSingleScatteringAtmosphere:
         """Scattering kernel should have units of 1/sr (1/rad^2)."""
         wvl = np.array([500]) * u.nm
         scat = simple_atmosphere.scattering(
-            np.array([np.pi / 4]), np.array([0.0]),
-            np.array([np.pi / 3]), np.array([0.5]),
-            wvl)
+            np.array([np.pi / 4]), np.array([0.0]), np.array([np.pi / 3]), np.array([0.5]), wvl
+        )
         assert scat.unit == 1 / u.radian**2
 
     def test_scattering_shape(self, simple_atmosphere):
@@ -62,5 +65,6 @@ class TestSingleScatteringAtmosphere:
             np.array([0.0, 0.1])[:, None, None],
             np.array([np.pi / 2])[None, :, None],
             np.array([0.0])[None, :, None],
-            wvl)
+            wvl,
+        )
         assert scat.shape[-1] == 2  # wavelength dim

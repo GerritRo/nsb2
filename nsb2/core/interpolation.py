@@ -25,5 +25,5 @@ class UnitRegularGridInterpolator:
         xi = np.atleast_2d(xi)
         result = self.interpolator(xi)
         if self.log_values:
-            result = 10 ** result
+            result = 10**result
         return result * self.unit

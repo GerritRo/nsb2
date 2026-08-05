@@ -11,6 +11,7 @@ def LST1North():
     bandpass = Bandpass.from_csv(BANDPASS_PATH / "LST_like.dat")
     return EffectiveApertureInstrument(response, bandpass)
 
+
 def MSTNorth():
     response = np.load(RESPONSE_PATH / "MST_North_like.npz")
     bandpass = Bandpass.from_csv(BANDPASS_PATH / "MST_like.dat")

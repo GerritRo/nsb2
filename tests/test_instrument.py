@@ -21,9 +21,9 @@ def _make_mock_response(n_pix=4, grid_size=5):
         y_arr.append(y)
         v_arr.append(v)
     return {
-        'x': np.array(x_arr),
-        'y': np.array(y_arr),
-        'values': np.array(v_arr),
+        "x": np.array(x_arr),
+        "y": np.array(y_arr),
+        "values": np.array(v_arr),
     }
 
 
@@ -57,7 +57,7 @@ class TestEffectiveApertureInstrument:
         sg = make_spectral_grid()
         obs = make_observation()
         # Place sources at small offsets within the FOV
-        coords = SkyCoord([0.0, 0.001], [0.0, 0.0], unit='rad', frame=obs)
+        coords = SkyCoord([0.0, 0.001], [0.0, 0.0], unit="rad", frame=obs)
         field = SourceField(
             coords=coords,
             weights=np.ones((2, 1)) * u.dimensionless_unscaled,
@@ -76,7 +76,7 @@ class TestEffectiveApertureInstrument:
     def test_compute_pixel_weights_diffuse_source(self, instrument):
         sg = make_spectral_grid()
         obs = make_observation()
-        coords = SkyCoord([0.0], [0.0], unit='rad', frame=obs)
+        coords = SkyCoord([0.0], [0.0], unit="rad", frame=obs)
         field = SourceField(
             coords=coords,
             weights=np.ones((1, 1)) * u.dimensionless_unscaled,
@@ -97,8 +97,12 @@ class TestEffectiveApertureInstrument:
         rates = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) / u.s
         refs = PixelRefs(
             indices=[np.array([0, 1]), np.array([0]), np.array([]), np.array([1])],
-            weights=[np.array([0.5, 0.3]) * u.m**2, np.array([1.0]) * u.m**2,
-                     np.array([]) * u.m**2, np.array([0.2]) * u.m**2],
+            weights=[
+                np.array([0.5, 0.3]) * u.m**2,
+                np.array([1.0]) * u.m**2,
+                np.array([]) * u.m**2,
+                np.array([0.2]) * u.m**2,
+            ],
         )
         result = instrument.project_discrete(rates, refs)
         assert result.shape == (4, 3)

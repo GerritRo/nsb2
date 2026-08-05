@@ -15,8 +15,7 @@ from nsb2.core.spectral import Bandpass
 
 def _min_med_max(arr, axis=-1):
     """Stack min / median / max along *axis* into a new trailing dimension."""
-    return np.stack([f(arr, axis=axis) for f in
-                     (np.nanmin, np.nanmedian, np.nanmax)], axis=-1)
+    return np.stack([f(arr, axis=axis) for f in (np.nanmin, np.nanmedian, np.nanmax)], axis=-1)
 
 
 class Instrument(ABC):
@@ -52,7 +51,7 @@ class Instrument(ABC):
         """
         lon_range, lat_range = self.fov_range()
         X, Y = np.meshgrid(np.linspace(*lon_range, n), np.linspace(*lat_range, n))
-        return SkyCoord(X, Y, unit='rad', frame=observation).transform_to(observation.origin)
+        return SkyCoord(X, Y, unit="rad", frame=observation).transform_to(observation.origin)
 
     def project_discrete(self, rates: np.ndarray, pixel_refs: PixelRefs) -> u.Quantity:
         """Project rates to pixels via discrete assignment.
@@ -80,12 +79,11 @@ class Instrument(ABC):
             idx = pixel_refs.indices[i]
             w = weights[i]
             if len(idx) == 0:
-                results.append(np.full(3, 0)* w.unit * rstack.unit)
+                results.append(np.full(3, 0) * w.unit * rstack.unit)
             else:
                 results.append(np.nansum(w[:, None] * rstack[idx], axis=0))
 
         return u.Quantity(results)
-
 
     def project_continuous(self, rates: np.ndarray, eval_coords: SkyCoord) -> u.Quantity:
         """Project a grid rate field to pixels via interpolation.
@@ -107,12 +105,13 @@ class Instrument(ABC):
         lon = np.linspace(*lon_range, eval_coords.shape[1])
         lat = np.linspace(*lat_range, eval_coords.shape[0])
         summed = np.nansum(rstack, axis=-2)  # sum over sources
-        rgi = UnitRegularGridInterpolator([lat, lon], summed,
-                                          bounds_error=False, fill_value=None)
+        rgi = UnitRegularGridInterpolator([lat, lon], summed, bounds_error=False, fill_value=None)
         return rgi(self._pix_pos[:, ::-1]) * self._pix_area_sr[:, None] * u.m**2 * u.radian**2
 
     @abstractmethod
-    def compute_pixel_weights(self, field: SourceField, pixel_refs: PixelRefs, observation) -> PixelRefs:
+    def compute_pixel_weights(
+        self, field: SourceField, pixel_refs: PixelRefs, observation
+    ) -> PixelRefs:
         """Fill in instrument-specific pixel weights for a PixelRefs.
 
         Parameters
@@ -135,19 +134,19 @@ class EffectiveApertureInstrument(Instrument):
     """Instrument with per-pixel effective aperture response functions."""
 
     def __init__(self, response: dict, bandpass: Bandpass) -> None:
-        x = np.asarray(response['x'])
-        y = np.asarray(response['y'])
-        vals = np.asarray(response['values'])
+        x = np.asarray(response["x"])
+        y = np.asarray(response["y"])
+        vals = np.asarray(response["values"])
 
-        self._pix_pos = np.stack([np.mean(x, axis=1),
-                                  np.mean(y, axis=1)]).T
-        self._pix_bins = np.stack([x[:, [0, -1]],
-                                   y[:, [0, -1]]], axis=1)
+        self._pix_pos = np.stack([np.mean(x, axis=1), np.mean(y, axis=1)]).T
+        self._pix_bins = np.stack([x[:, [0, -1]], y[:, [0, -1]]], axis=1)
         self._pix_rad = np.max(np.diff(self._pix_bins, axis=2), axis=(1, 2)) / np.sqrt(2)
 
         # Precompute FOV range
-        self._fov = ((self._pix_bins[:, 1].min(), self._pix_bins[:, 1].max()),
-                     (self._pix_bins[:, 0].min(), self._pix_bins[:, 0].max()))
+        self._fov = (
+            (self._pix_bins[:, 1].min(), self._pix_bins[:, 1].max()),
+            (self._pix_bins[:, 0].min(), self._pix_bins[:, 0].max()),
+        )
 
         inner = simps(vals, x=x[:, np.newaxis, :], axis=-1)
         self._pix_area_sr = np.asarray(simps(inner, x=y, axis=-1))
@@ -164,8 +163,7 @@ class EffectiveApertureInstrument(Instrument):
         return len(self._pix_pos)
 
     def pixel_coords(self, observation) -> SkyCoord:
-        return SkyCoord(self._pix_pos[:, 0], self._pix_pos[:, 1],
-                        unit='rad', frame=observation)
+        return SkyCoord(self._pix_pos[:, 0], self._pix_pos[:, 1], unit="rad", frame=observation)
 
     def pixel_radii(self) -> np.ndarray:
         return self._pix_rad
@@ -173,7 +171,9 @@ class EffectiveApertureInstrument(Instrument):
     def fov_range(self) -> tuple[tuple[float, float], tuple[float, float]]:
         return self._fov
 
-    def compute_pixel_weights(self, field: SourceField, pixel_refs: PixelRefs, observation) -> PixelRefs:
+    def compute_pixel_weights(
+        self, field: SourceField, pixel_refs: PixelRefs, observation
+    ) -> PixelRefs:
         from dataclasses import replace
 
         if field.radiance_field:
@@ -184,10 +184,9 @@ class EffectiveApertureInstrument(Instrument):
             all_lat = s_coords.lat.rad
 
             counts = np.fromiter(
-                (len(idx) for idx in pixel_refs.indices),
-                dtype=int, count=self.n_pixels)
-            all_idx = np.concatenate(
-                [np.asarray(idx, dtype=int) for idx in pixel_refs.indices])
+                (len(idx) for idx in pixel_refs.indices), dtype=int, count=self.n_pixels
+            )
+            all_idx = np.concatenate([np.asarray(idx, dtype=int) for idx in pixel_refs.indices])
 
             pix_ids = np.repeat(np.arange(self.n_pixels), counts)
             fx = (all_lon[all_idx] - self._resp_x0[pix_ids]) * self._resp_x_scale[pix_ids]
@@ -196,9 +195,11 @@ class EffectiveApertureInstrument(Instrument):
             flat_vals = map_coordinates(
                 self._response_values,
                 np.array([pix_ids.astype(np.float64), fx, fy]),
-                order=1, mode='constant', cval=0.0)
+                order=1,
+                mode="constant",
+                cval=0.0,
+            )
 
-            weights = [chunk * u.m**2
-                       for chunk in np.split(flat_vals, np.cumsum(counts[:-1]))]
+            weights = [chunk * u.m**2 for chunk in np.split(flat_vals, np.cumsum(counts[:-1]))]
 
         return replace(pixel_refs, weights=weights)

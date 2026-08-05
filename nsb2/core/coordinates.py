@@ -19,14 +19,16 @@ class SunRelativeEclipticFrame(BaseCoordinateFrame):
 
     frame_specific_representation_info = {
         SphericalRepresentation: [
-            RepresentationMapping('lon', 'alpha'),
-            RepresentationMapping('lat', 'beta'),
-            RepresentationMapping('distance', 'distance')
+            RepresentationMapping("lon", "alpha"),
+            RepresentationMapping("lat", "beta"),
+            RepresentationMapping("distance", "distance"),
         ]
     }
 
-@frame_transform_graph.transform(FunctionTransform,
-                                 GeocentricTrueEcliptic, SunRelativeEclipticFrame)
+
+@frame_transform_graph.transform(
+    FunctionTransform, GeocentricTrueEcliptic, SunRelativeEclipticFrame
+)
 def gte_to_sunrel(gte_coords, sunrel_frame):
     obstime = gte_coords.obstime
     if obstime is None:
@@ -42,8 +44,10 @@ def gte_to_sunrel(gte_coords, sunrel_frame):
 
     return SunRelativeEclipticFrame(alpha=alpha, beta=beta, distance=distance, obstime=obstime)
 
-@frame_transform_graph.transform(FunctionTransform,
-                                 SunRelativeEclipticFrame, GeocentricTrueEcliptic)
+
+@frame_transform_graph.transform(
+    FunctionTransform, SunRelativeEclipticFrame, GeocentricTrueEcliptic
+)
 def sunrel_to_gte(sunrel_coords, gte_frame):
     obstime = sunrel_coords.obstime
     if obstime is None:
@@ -57,5 +61,7 @@ def sunrel_to_gte(sunrel_coords, gte_frame):
     distance = sunrel_coords.distance if sunrel_coords.distance.unit != u.one else None
 
     from astropy.coordinates import SkyCoord
-    return SkyCoord(lon=lon, lat=lat, distance=distance,
-                    frame=GeocentricTrueEcliptic(obstime=obstime))
+
+    return SkyCoord(
+        lon=lon, lat=lat, distance=distance, frame=GeocentricTrueEcliptic(obstime=obstime)
+    )

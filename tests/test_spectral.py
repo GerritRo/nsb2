@@ -8,6 +8,7 @@ from nsb2.core.spectral import Bandpass, RateGrid, SpectralGrid
 # Bandpass
 # ---------------------------------------------------------------------------
 
+
 def _make_bandpass(n=100, lam_min=300, lam_max=600):
     """Create a simple top-hat bandpass for testing."""
     lam = np.linspace(lam_min, lam_max, n) * u.nm
@@ -48,6 +49,7 @@ class TestBandpass:
 # SpectralGrid
 # ---------------------------------------------------------------------------
 
+
 def _make_spectral_grid():
     """Simple 1D spectral grid: 10 color bins × 50 wavelengths × 3 components."""
     color_pts = np.linspace(-1, 1, 10)
@@ -55,7 +57,7 @@ def _make_spectral_grid():
     # Flat spectra that scale linearly with color index
     flx = np.ones((10, 50, 3)) * u.erg / u.s / u.cm**2 / u.nm
     for i, c in enumerate(color_pts):
-        flx[i] *= (1 + 0.5 * c)
+        flx[i] *= 1 + 0.5 * c
     return SpectralGrid([color_pts], wvl, flx)
 
 
@@ -90,9 +92,8 @@ class TestSpectralGrid:
         filtered = sg.apply_bandpass(bp)
         # Flux should be halved
         np.testing.assert_allclose(
-            filtered.flx[5, :, 0].value,
-            0.5 * sg.flx[5, :, 0].value,
-            atol=0.05)
+            filtered.flx[5, :, 0].value, 0.5 * sg.flx[5, :, 0].value, atol=0.05
+        )
 
     def test_integrate_returns_rate_grid(self):
         sg = _make_spectral_grid()
@@ -111,6 +112,7 @@ class TestSpectralGrid:
 # RateGrid
 # ---------------------------------------------------------------------------
 
+
 class TestRateGrid:
     def test_call_with_empty_xi_returns_raw_rate(self):
         rg = RateGrid([], np.array([[1, 2, 3]]) * u.ct / u.s)
@@ -124,3 +126,56 @@ class TestRateGrid:
         result = rg(np.array([[0.5]]))
         assert result.shape == (1, 1)
         assert result.value[0, 0] == pytest.approx(30.0, rel=0.01)
+
+    def test_mul_scales_rate(self):
+        pts = np.linspace(0, 1, 3)
+        rate = np.ones((3, 2)) * u.ct / u.s
+        rg = RateGrid([pts], rate)
+        scale = np.ones((1, 3)) * 5.0
+        rg2 = rg * scale
+        assert isinstance(rg2, RateGrid)
+
+
+# ---------------------------------------------------------------------------
+# Bandpass — from_csv and mocked download methods
+# ---------------------------------------------------------------------------
+
+
+class TestBandpassFromCsvAndDownload:
+    def test_from_csv_loads_file(self):
+        from nsb2.instrument import BANDPASS_PATH
+
+        bp = Bandpass.from_csv(BANDPASS_PATH / "LST_like.dat")
+        assert isinstance(bp, Bandpass)
+        assert bp.lam.unit == u.nm
+        assert bp.min < bp.max
+
+    def test_from_svo_mocked(self):
+        from unittest.mock import MagicMock, patch
+
+        mock_table = MagicMock()
+        mock_table.array.data = {
+            "Wavelength": np.linspace(3000, 9000, 50),
+            "Transmission": np.ones(50) * 0.8,
+        }
+        with patch("nsb2.core.spectral.download_file", return_value="/fake/path"):
+            with patch("nsb2.core.spectral.votable.parse_single_table", return_value=mock_table):
+                bp = Bandpass.from_SVO("GAIA/GAIA3.G")
+        assert isinstance(bp, Bandpass)
+        assert bp.lam.unit == u.angstrom
+
+    def test_vegazero_mocked(self):
+        from unittest.mock import MagicMock, patch
+
+        mock_hdul = MagicMock()
+        mock_hdul.__getitem__ = lambda self, idx: MagicMock(
+            data={
+                "WAVELENGTH": np.linspace(3000, 9000, 100),
+                "FLUX": np.ones(100) * 1e-10,
+            }
+        )
+        with patch("nsb2.core.spectral.download_file", return_value="/fake/path"):
+            with patch("nsb2.core.spectral.fits.open", return_value=mock_hdul):
+                bp = _make_bandpass(lam_min=400, lam_max=700)
+                vz = bp.vegazero
+        assert vz.unit.is_equivalent(u.erg / u.s / u.cm**2)
