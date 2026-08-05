@@ -12,3 +12,4 @@ background with different IACTs.
    MST_Tutorial
    Custom_Telescope_Tutorial
    Custom_Source_Tutorial
+   NSB_Timeseries_Tutorial
