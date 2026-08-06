@@ -1,3 +1,12 @@
+"""Interface for atmospheric extinction and scattering models.
+
+An atmosphere answers two questions.  Along the direct path it says what
+fraction of a source's light survives the journey to the telescope.  Along
+the scattered path it says how much light arriving from one direction is
+redirected into another, which is what turns a bright Moon into a raised
+background across the whole field of view.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -5,9 +14,38 @@ from abc import ABC, abstractmethod
 import astropy.units as u
 import numpy as np
 
+__all__ = [
+    "Atmosphere",
+    "haversine",
+]
+
 
 def haversine(delta_lon, lat1, lat2):
-    """The haversine angular distance formula."""
+    """Angular distance between two points on a sphere.
+
+    Uses the haversine form, which stays numerically accurate for the small
+    separations that dominate scattering close to a bright source, where the
+    spherical law of cosines loses precision.
+
+    Parameters
+    ----------
+    delta_lon : array_like
+        Difference in longitude, in radians.
+    lat1, lat2 : array_like
+        Latitudes of the two points, in radians.  Shapes must be mutually
+        broadcastable with ``delta_lon``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Angular separation in radians, in ``[0, pi]``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> round(float(np.degrees(haversine(np.radians(90.0), 0.0, 0.0))), 6)
+    90.0
+    """
     delta_lat = lat1 - lat2
     sin_delta_lat = np.sin(delta_lat / 2) ** 2
     sin_sum_lat = np.sin((lat1 + lat2) / 2) ** 2
@@ -19,83 +57,94 @@ def haversine(delta_lon, lat1, lat2):
 
 class Atmosphere(ABC):
     """Base class for atmospheric models.
+
+    Subclasses implement :meth:`_compute_extinction` and
+    :meth:`_compute_scattering`.  The public :meth:`extinction` and
+    :meth:`scattering` methods wrap those with the unit handling, so that
+    implementations can work in plain arrays.
     """
 
     def extinction(self, alt, az, wvl: u.Quantity) -> np.ndarray:
-        """Compute extinction weights along line of sight.
+        """Compute the transmission along a line of sight.
 
         Parameters
         ----------
-        alt, az : array-like
+        alt, az : array_like
             Source altitude and azimuth in radians.  Shapes must be mutually
             broadcastable.
-        wvl : Quantity, shape (W,)
-            Wavelength grid.
+        wvl : astropy.units.Quantity
+            Wavelength grid, shape ``(W,)``.
 
         Returns
         -------
-        weights : ndarray, shape broadcastable to (..., W)
-            Dimensionless transmission factor in [0, 1].
+        numpy.ndarray
+            Dimensionless transmission in ``[0, 1]``, broadcastable to
+            ``(..., W)``.
         """
         return self._compute_extinction(alt, az, wvl)
 
     def scattering(self, eval_alt, eval_az, alt, az, wvl: u.Quantity) -> u.Quantity:
-        """Compute scattering kernel.
+        """Compute the scattering kernel between two directions.
 
         Parameters
         ----------
-        eval_alt, eval_az : array-like
-            Evaluation-point altitude/azimuth in radians.
-        alt, az : array-like
-            Source altitude/azimuth in radians.
-        wvl : Quantity, shape (W,)
-            Wavelength grid.
+        eval_alt, eval_az : array_like
+            Altitude and azimuth of the direction being observed, in radians.
+        alt, az : array_like
+            Altitude and azimuth of the illuminating source, in radians.
+            Shapes must be mutually broadcastable with the evaluation point.
+        wvl : astropy.units.Quantity
+            Wavelength grid, shape ``(W,)``.
 
         Returns
         -------
-        kernel : ndarray, shape broadcastable to (..., W), units 1/sr
-            Scattering kernel with ``1/sr`` units.
+        astropy.units.Quantity
+            Scattering kernel in ``1 / sr``, broadcastable to ``(..., W)``.
         """
         return self._compute_scattering(eval_alt, eval_az, alt, az, wvl) / u.radian**2
 
     @abstractmethod
     def _compute_extinction(self, alt, az, wvl: u.Quantity) -> np.ndarray:
-        """Compute dimensionless extinction (transmission) factor.
+        """Compute the dimensionless transmission factor.
 
-        Must support numpy broadcasting on ``alt`` and ``az``
+        Implementations must support numpy broadcasting on ``alt`` and ``az``.
 
         Parameters
         ----------
-        alt, az : array-like
+        alt, az : array_like
             Source altitude and azimuth in radians.
-        wvl : Quantity, shape (W,)
-            Wavelength grid.
+        wvl : astropy.units.Quantity
+            Wavelength grid, shape ``(W,)``.
 
         Returns
         -------
-        ndarray, shape broadcastable to (..., W)
-            Dimensionless transmission in [0, 1].
+        numpy.ndarray
+            Dimensionless transmission in ``[0, 1]``, broadcastable to
+            ``(..., W)``.
         """
         ...
 
     @abstractmethod
-    def _compute_scattering(self, eval_alt, eval_az, alt, az, wvl: u.Quantity) -> np.ndarray:
-        """Compute dimensionless scattering kernel (before ``/sr``).
+    def _compute_scattering(
+        self, eval_alt, eval_az, alt, az, wvl: u.Quantity
+    ) -> np.ndarray:
+        """Compute the scattering kernel before the ``1 / sr`` is attached.
 
-        Must support numpy broadcasting on all positional arguments.
+        Implementations must support numpy broadcasting on all positional
+        arguments.
 
         Parameters
         ----------
-        eval_alt, eval_az : array-like
-            Evaluation-point altitude/azimuth (radians).
-        alt, az : array-like
-            Source altitude/azimuth (radians).
-        wvl : Quantity, shape (W,)
-            Wavelength grid.
+        eval_alt, eval_az : array_like
+            Altitude and azimuth of the direction being observed, in radians.
+        alt, az : array_like
+            Altitude and azimuth of the illuminating source, in radians.
+        wvl : astropy.units.Quantity
+            Wavelength grid, shape ``(W,)``.
 
         Returns
         -------
-        ndarray, shape broadcastable to (..., W)
-            Dimensionless scattering kernel.
+        numpy.ndarray
+            Dimensionless scattering kernel, broadcastable to ``(..., W)``.
         """
         ...

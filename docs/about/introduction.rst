@@ -18,16 +18,16 @@ nsb2 provides a computational framework for:
   single-scattering albedo through the atmosphere.
 
 - **Telescope response**: Characterize how IACTS respond to background light,
-  using raytraced pixel reponses.
+  using raytraced pixel responses.
 
-- **Pipeline simulation**: Combine different types of pipelines and solvers, 
+- **Pipeline simulation**: Combine different types of pipelines and solvers,
   be it explicit evaluation or look-up tables.
 
 Target Audience
 ---------------
 
-This library is designed for observation planning for IACTs, generating training 
-data for machine learning algorithms and instrument monitoring. For a more 
+This library is designed for observation planning for IACTs, generating training
+data for machine learning algorithms and instrument monitoring. For a more
 complex implementation, take a look at `NYX <https://github.com/GerritRo/nyx/>`_
 
 The library assumes familiarity with Python, NumPy-style array programming, and
@@ -54,15 +54,17 @@ If you use nsb2 in your research, please cite::
 
 Please also cite the original NSB paper using nsb2:
 
-@article{roellinghoff_2025_advanced,
-  title={Advanced modelling of the night sky background light for imaging atmospheric Cherenkov telescopes},
-  author={Roellinghoff, Gerrit and Spencer, Samuel T and Funk, Stefan},
-  journal={Astronomy \& Astrophysics},
-  volume={698},
-  pages={A212},
-  year={2025},
-  publisher={EDP Sciences}
-}
+.. code-block:: bibtex
+
+   @article{roellinghoff_2025_advanced,
+       title = {Advanced modelling of the night sky background light for imaging atmospheric Cherenkov telescopes},
+       author = {Roellinghoff, Gerrit and Spencer, Samuel T and Funk, Stefan},
+       journal = {Astronomy \& Astrophysics},
+       volume = {698},
+       pages = {A212},
+       year = {2025},
+       publisher = {EDP Sciences}
+   }
 
 Please also cite the origin of all telescope, atmospheric, and emission models
 you use in your work.

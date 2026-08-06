@@ -1,18 +1,20 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+For the full list of built-in configuration values, see
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'nsb2'
-copyright = '2025, Gerrit Roellinghoff'
-author = 'Gerrit Roellinghoff'
+project = "nsb2"
+copyright = "2025, Gerrit Roellinghoff"
+author = "Gerrit Roellinghoff"
 
 # Version handling
 try:
     from nsb2 import __version__
+
     release = __version__
 except ImportError:
     release = "dev"
@@ -23,50 +25,51 @@ version = release
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx_automodapi.automodapi',
-    'sphinx_design',
-    'myst_nb',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx_automodapi.automodapi",
+    "sphinx_design",
+    "myst_nb",
 ]
 
 # -- Options for myst-nb -----------------------------------------------------
 
 # Don't execute notebooks during build (they should be pre-executed)
-nb_execution_mode = 'off'
+nb_execution_mode = "off"
 
 # Source file suffixes
 source_suffix = {
-    '.rst': 'restructuredtext',
-    '.ipynb': 'myst-nb',
-    '.md': 'myst-nb',
+    ".rst": "restructuredtext",
+    ".ipynb": "myst-nb",
+    ".md": "myst-nb",
 }
 
 # myst-parser configuration
 myst_enable_extensions = [
-    'dollarmath',  # Enable $ and $$ for math
-    'colon_fence',  # Enable ::: fences
+    "dollarmath",  # Enable $ and $$ for math
+    "colon_fence",  # Enable ::: fences
 ]
 
-nb_render_markdown_format = 'myst'
+nb_render_markdown_format = "myst"
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for autodoc -----------------------------------------------------
 
-autodoc_typehints = 'none'
-autodoc_class_signature = 'separated'
-autodoc_member_order = 'bysource'
+autodoc_typehints = "none"
+autodoc_class_signature = "separated"
+autodoc_member_order = "bysource"
 
+# Deliberately does not force `members`/`undoc-members`: automodapi already
+# generates a stub page per object, and documenting members inline as well
+# makes every object appear twice.
 autodoc_default_options = {
-    'members': True,
-    'undoc-members': True,
-    'show-inheritance': True,
+    "show-inheritance": True,
 }
 
 # -- Options for automodapi --------------------------------------------------
@@ -76,17 +79,17 @@ numpydoc_show_class_members = False
 # -- Options for intersphinx -------------------------------------------------
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
-    'astropy': ('https://docs.astropy.org/en/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
-html_static_path = ['_static']
+html_theme = "furo"
+html_static_path = ["_static"]
 
 # Furo theme options
 html_theme_options = {
@@ -105,7 +108,10 @@ napoleon_include_special_with_doc = True
 napoleon_use_admonition_for_examples = True
 napoleon_use_admonition_for_notes = True
 napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
+# Render Attributes sections as :ivar: fields inside the class body. Without
+# this, numpydoc emits standalone attribute directives that collide with the
+# ones autodoc generates for dataclass fields.
+napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_preprocess_types = False

@@ -1,7 +1,6 @@
-# Exclude specific files
-# All files which are tracked by git and not explicitly excluded here are included by setuptools_scm
-# Prune folders
+# Data files shipped inside the package are declared in pyproject.toml under
+# [tool.setuptools.package-data]; this file only trims the source distribution.
 prune build
 prune docs/_build
 prune docs/api
-global-exclude *.pyc *.o
+global-exclude *.pyc *.o __pycache__

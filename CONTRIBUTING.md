@@ -11,9 +11,16 @@ git remote add upstream https://github.com/GerritRo/nsb2.git
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
+# Install the git hooks that run ruff and the file checks on every commit
+pre-commit install
+
 # Verify everything works
 pytest
 ```
+
+nsb2 follows the [ctapipe style guide](https://ctapipe.readthedocs.io/en/stable/developer-guide/style-guide.html)
+and is kept co-installable with ctapipe, so that it can be used from a
+ctapipe analysis or eventually vendored into it.
 
 ---
 
@@ -103,9 +110,10 @@ messages at release time via `cz bump --changelog`.
 - **Target branch** is `dev` (unless it's a hotfix targeting `main`)
 - **PR checklist:**
   - [ ] Tests pass (`pytest`)
-  - [ ] Lint passes (`ruff check nsb2`)
+  - [ ] Lint and formatting pass (`pre-commit run --all-files`)
   - [ ] Types pass (`mypy nsb2`)
-  - [ ] New code has tests
+  - [ ] New code has tests, and bug fixes have a regression test
+  - [ ] New public API has NumPy-style docstrings
 
 ---
 
@@ -114,13 +122,72 @@ messages at release time via `cz bump --changelog`.
 ### Quick reference
 
 ```bash
+pre-commit run --all-files               # Everything CI's lint job runs
 ruff check nsb2                          # Lint
 ruff check --fix nsb2                    # Lint + auto-fix
-ruff format nsb2                         # Format
+ruff format nsb2                         # Format (black-compatible, 88 cols)
 mypy nsb2                                # Type check
 pytest                                   # Tests
+pytest -m remote_data                    # Tests that download reference data
 pytest --cov=nsb2 --cov-report=html      # Coverage report
 ```
+
+### Where tests live
+
+Tests sit in a `tests/` subdirectory of the module they cover, as in
+ctapipe:
+
+```
+nsb2/core/tests/test_spectral.py
+nsb2/atmosphere/tests/test_single_scattering.py
+nsb2/emitter/tests/test_airglow.py
+nsb2/instrument/tests/test_bundled_instruments.py
+```
+
+Fixtures shared across subpackages go in `nsb2/conftest.py`. Any test that
+needs the network must be marked `@pytest.mark.remote_data`, so that the
+default `pytest` run stays offline and fast.
+
+**CI does not run the `remote_data` tests.** They are the only thing that
+checks the external reference data is still where we expect it — a retired
+CALSPEC revision once broke every star source with a silent 404. Run them
+yourself before a release, and whenever you touch an emitter:
+
+```bash
+pytest -m remote_data
+```
+
+Prefer making code testable offline over adding a new `remote_data` test.
+The pattern used throughout is to keep the physics in module-level functions
+and let only the data loading be network-bound — see
+`nsb2/emitter/moon.py`, where the ROLO albedo model is fully testable
+without the solar spectrum download. Downloads themselves can be stubbed
+with `nsb2.conftest.stub_download`.
+
+### Reference arrays
+
+`nsb2/core/tests/test_regression.py` pins the offline computation chain to
+stored reference values. They detect drift; they do not validate against a
+published table. If a change moves them, work out why before regenerating:
+
+```bash
+python -m nsb2.core.tests.test_regression
+```
+
+### Conventions
+
+- Every public function, class and module carries a
+  [NumPy-style docstring](https://numpydoc.readthedocs.io/en/latest/format.html).
+- Algorithms cite their source, and the citation is collected in
+  `docs/bibliography.rst`. Reference it from the docstring as
+  ``[Author2003]_``.
+- Use `logging` rather than `print()`; library modules define
+  `logger = logging.getLogger(__name__)` at the top of the file. `ruff`
+  fails the build on `print()`.
+- Functions must not modify their arguments — the pipeline stages are meant
+  to be reorderable and parallelisable.
+- Use `astropy.units` for any quantity in a public API whose unit could be
+  ambiguous.
 
 ---
 
@@ -143,8 +210,11 @@ Maintainers only. Uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.
 
 1. Create `release/x.y.z` from `dev`
 2. `cz bump --changelog` to bump version + generate changelog
-3. Run full test suite + doc build
-4. Merge into `main`, tag `vx.y.z`, backmerge into `dev`
+3. Run the full test suite **including** `pytest -m remote_data` — CI never
+   runs those, so this is the only check that the external reference data is
+   still reachable
+4. Build the docs (`cd docs && make html`); warnings are errors
+5. Merge into `main`, tag `vx.y.z`, backmerge into `dev`
 
 ---
 
