@@ -1,4 +1,4 @@
-"""Atmosphere models."""
+"""Atmospheric model implementations."""
 
 from nsb2.atmosphere.single_scattering import SingleScatteringAtmosphere
 

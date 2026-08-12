@@ -1,13 +1,3 @@
-"""Light paths from a source to an instrument pixel.
-
-Light reaches a pixel two ways.  It travels straight from the source and is
-attenuated on the way, or it is scattered into the line of sight by the
-atmosphere.  A light path ties a source, an atmosphere and an instrument
-together for one of these routes and produces a
-:class:`~nsb2.core.dtypes.Prediction`; the numerical work is delegated to a
-:mod:`solver <nsb2.core.solver>`.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -40,7 +30,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-#: Default number of evaluation grid points per axis for scattered light.
 DEFAULT_EVAL_GRID_N = 2
 
 

@@ -1,5 +1,3 @@
-"""Zodiacal light emission model."""
-
 import logging
 
 import astropy.units as u
@@ -23,21 +21,14 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-#: Unit of the tabulated Leinert brightness, in W / (m2 sr um).
 LEINERT_SCALE = 1e-8
 
-#: Wavelength the colour correction is normalised at.
 REFERENCE_WAVELENGTH = 500 * u.nm
 
-#: Elongation range, in degrees, over which the colour correction is tabulated.
 ELONGATION_RANGE = (30, 90)
 
-#: Reddening slope at the near end of the elongation range, below and above
-#: :data:`REFERENCE_WAVELENGTH`.
 SLOPE_NEAR = (1.2, 0.8)
 
-#: Reddening slope at the far end of the elongation range, below and above
-#: :data:`REFERENCE_WAVELENGTH`.
 SLOPE_FAR = (0.9, 0.6)
 
 
@@ -47,8 +38,7 @@ def helioecliptic_longitude(lon):
     Longitudes come out of
     :class:`~nsb2.core.coordinates.SunRelativeEclipticFrame` normalised to
     ``[0, 2 pi)``, so they are wrapped to ``[-pi, pi)`` before the absolute
-    value is taken.  Without the wrap a direction just west of the Sun would
-    be read as lying almost a full turn away from it.
+    value is taken.
 
     Parameters
     ----------
@@ -71,10 +61,6 @@ def helioecliptic_longitude(lon):
 
 def solar_elongation(lon, lat):
     """Angular distance from the Sun, in radians.
-
-    This is the great-circle distance, not the difference in longitude: a
-    direction on the same meridian as the Sun but sixty degrees above the
-    ecliptic is sixty degrees from the Sun, not zero.
 
     Parameters
     ----------
@@ -100,7 +86,8 @@ def solar_elongation(lon, lat):
 
 @u.quantity_input(wvl=u.nm)
 def color_correction(wvl: u.Quantity) -> np.ndarray:
-    """Reddening of zodiacal light relative to the solar spectrum.
+    """
+    Reddening of zodiacal light relative to the solar spectrum.
 
     Zodiacal light is sunlight scattered off interplanetary dust, which
     reddens it, and the more so the closer to the Sun one looks.
@@ -119,12 +106,6 @@ def color_correction(wvl: u.Quantity) -> np.ndarray:
     numpy.ndarray
         Correction factor, shape ``(2, W)``: one curve at each end of
         :data:`ELONGATION_RANGE`, to be interpolated between.
-
-    Notes
-    -----
-    The logarithm is base 10.  With these slopes a natural logarithm would
-    drive the correction negative below about 220 nm, which is unphysical,
-    and would overstate the reddening by a factor of ``ln(10)`` throughout.
 
     Examples
     --------
@@ -150,7 +131,7 @@ def from_leinert1998() -> LonLatSource:
 
     Zodiacal light is fixed relative to the Sun rather than to the stars, so
     its brightness is tabulated in
-    :class:`~nsb2.core.coordinates.SunRelativeEclipticFrame`.  Its spectrum
+    :class:`~nsb2.core.coordinates.SunRelativeEclipticFrame`. Its spectrum
     is the solar spectrum of [Rieke2008]_ reddened by
     :func:`color_correction`, interpolated by solar elongation.
 
@@ -180,12 +161,7 @@ def from_leinert1998() -> LonLatSource:
     )
 
     def weight_function(lon, lat):
-        """Interpolate the tabulated brightness at the given sky position.
-
-        The Leinert table is indexed by helioecliptic longitude and ecliptic
-        latitude, and is symmetric in both, so the folded absolute values are
-        used directly rather than the elongation.
-        """
+        """Interpolate the tabulated brightness at the given sky position."""
         coords = np.asarray([helioecliptic_longitude(lon), np.abs(lat)]).T
         return brightness(coords) * LEINERT_SCALE * u.W / u.m**2 / u.sr / u.micron
 

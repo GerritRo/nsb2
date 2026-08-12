@@ -1,5 +1,3 @@
-"""Single-scattering atmosphere model."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -19,14 +17,14 @@ class SingleScatteringAtmosphere(Atmosphere):
 
     Combines Rayleigh scattering off air molecules with Mie scattering off
     aerosols, following the plane-parallel single-scattering treatment of
-    [Krisciunas1991]_ and [Noll2012]_.  The scattering kernel factorises into
+    [Kocifaj2009]_.  The scattering kernel factorises into
     an *indicatrix*, which describes the angular dependence, and a
     *gradation*, which describes how much scattering material lies along the
     two lines of sight.  The Rayleigh component uses the classical dipole
     phase function and the Mie component the forward-peaked approximation of
     [HenyeyGreenstein1941]_.  Ignoring multiple scattering underestimates the
     background close to a very bright source such as a full Moon, but is
-    accurate to a few per cent elsewhere.
+    accurate to a few per cent for high observatory latitudes.
 
     Parameters
     ----------
@@ -115,7 +113,8 @@ class SingleScatteringAtmosphere(Atmosphere):
         the parameters and returns.  The result is azimuth independent.
         """
         tau = self.tau_rayleigh(wvl) + self.tau_mie(wvl) + self.tau_absorption(wvl)
-        return np.exp(-tau[np.newaxis, :] * self.X(np.pi / 2 - alt)[:, np.newaxis])
+        airmass = np.asarray(self.X(np.pi / 2 - np.asarray(alt)))
+        return np.exp(-tau * airmass[..., np.newaxis])
 
     def _compute_scattering(
         self, eval_alt, eval_az, alt, az, wvl: u.Quantity

@@ -1,12 +1,3 @@
-"""Interface for atmospheric extinction and scattering models.
-
-An atmosphere answers two questions.  Along the direct path it says what
-fraction of a source's light survives the journey to the telescope.  Along
-the scattered path it says how much light arriving from one direction is
-redirected into another, which is what turns a bright Moon into a raised
-background across the whole field of view.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -22,10 +13,6 @@ __all__ = [
 
 def haversine(delta_lon, lat1, lat2):
     """Angular distance between two points on a sphere.
-
-    Uses the haversine form, which stays numerically accurate for the small
-    separations that dominate scattering close to a bright source, where the
-    spherical law of cosines loses precision.
 
     Parameters
     ----------
@@ -70,8 +57,7 @@ class Atmosphere(ABC):
         Parameters
         ----------
         alt, az : array_like
-            Source altitude and azimuth in radians.  Shapes must be mutually
-            broadcastable.
+            Source altitude and azimuth in radians.
         wvl : astropy.units.Quantity
             Wavelength grid, shape ``(W,)``.
 
@@ -84,7 +70,7 @@ class Atmosphere(ABC):
         return self._compute_extinction(alt, az, wvl)
 
     def scattering(self, eval_alt, eval_az, alt, az, wvl: u.Quantity) -> u.Quantity:
-        """Compute the scattering kernel between two directions.
+        """Compute the scattering kernel.
 
         Parameters
         ----------
@@ -92,7 +78,6 @@ class Atmosphere(ABC):
             Altitude and azimuth of the direction being observed, in radians.
         alt, az : array_like
             Altitude and azimuth of the illuminating source, in radians.
-            Shapes must be mutually broadcastable with the evaluation point.
         wvl : astropy.units.Quantity
             Wavelength grid, shape ``(W,)``.
 

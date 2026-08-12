@@ -1,5 +1,3 @@
-"""Tests for :mod:`nsb2.atmosphere.single_scattering`."""
-
 import astropy.units as u
 import numpy as np
 import pytest
@@ -10,98 +8,89 @@ from nsb2.core.atmosphere import haversine
 
 
 class TestHaversine:
-    def test_zero_separation(self):
+    def test_measures_the_great_circle_separation(self):
         assert haversine(0.0, 0.5, 0.5) == pytest.approx(0.0, abs=1e-12)
-
-    def test_quarter_turn_along_the_equator(self):
         assert haversine(np.pi / 2, 0.0, 0.0) == pytest.approx(np.pi / 2)
-
-    def test_antipodal_points(self):
         assert haversine(0.0, np.pi / 2, -np.pi / 2) == pytest.approx(np.pi)
+        assert haversine(np.zeros((3, 1)), np.zeros((3, 1)), np.zeros(4)).shape == (
+            3,
+            4,
+        )
 
-    def test_broadcasts(self):
-        result = haversine(np.zeros((3, 1)), np.zeros((3, 1)), np.zeros(4))
-        assert result.shape == (3, 4)
 
+class TestExtinction:
+    def test_follows_beer_lambert_along_the_line_of_sight(self, atmosphere):
+        """Transmission is exp(-tau) at zenith, where the airmass is one.
 
-class TestSingleScatteringAtmosphere:
-    def test_extinction_at_zenith(self, atmosphere):
-        wvl = np.array([400, 500, 600]) * u.nm
-        ext = atmosphere.extinction(np.array([np.pi / 2]), np.array([0.0]), wvl)
-        assert ext.shape == (1, 3)
-        assert np.all((ext > 0) & (ext <= 1))
+        It falls towards the horizon and, with Rayleigh scattering going as
+        lambda^-4, is stronger at short wavelengths.
+        """
+        zenith = atmosphere.extinction(
+            np.array([np.pi / 2]), np.array([0.0]), np.array([400.0]) * u.nm
+        )
+        assert float(zenith[0, 0]) == pytest.approx(np.exp(-(0.1 + 0.05 + 0.01)))
 
-    def test_extinction_matches_beer_lambert_at_zenith(self, atmosphere):
-        """At zenith the airmass is one, so transmission is exp(-tau)."""
-        wvl = np.array([400.0]) * u.nm
-        tau = 0.1 + 0.05 + 0.01
-        ext = atmosphere.extinction(np.array([np.pi / 2]), np.array([0.0]), wvl)
-        assert float(ext[0, 0]) == pytest.approx(np.exp(-tau))
+        wvl = np.array([350, 700]) * u.nm
+        overhead = atmosphere.extinction(np.array([np.pi / 2]), np.array([0.0]), wvl)
+        assert np.all((overhead > 0) & (overhead <= 1))
+        assert overhead[0, 0] < overhead[0, 1], "blue light is hit harder"
 
-    def test_extinction_decreases_towards_the_horizon(self, atmosphere):
-        wvl = np.array([500]) * u.nm
-        zenith = atmosphere.extinction(np.array([np.pi / 2]), np.array([0.0]), wvl)
         low = atmosphere.extinction(np.array([np.deg2rad(20)]), np.array([0.0]), wvl)
-        assert low[0, 0] < zenith[0, 0]
+        assert np.all(low[0] < overhead[0])
 
-    def test_extinction_is_stronger_at_short_wavelengths(self, atmosphere):
-        """Rayleigh scattering goes as lambda^-4, so blue light is hit harder."""
-        ext = atmosphere.extinction(
-            np.array([np.pi / 2]), np.array([0.0]), np.array([350, 700]) * u.nm
-        )
-        assert ext[0, 0] < ext[0, 1]
+    def test_broadcasts_over_any_altitude_shape(self, atmosphere):
+        """The altitude may arrive as a scalar or with any number of axes.
 
-    def test_extinction_shape(self, atmosphere):
+        The wavelength axis is appended to whatever shape it has.
+        """
         wvl = np.linspace(300, 700, 50) * u.nm
-        alt = np.array([np.pi / 4, np.pi / 3, np.pi / 2])
-        assert atmosphere.extinction(alt, np.zeros(3), wvl).shape == (3, 50)
+        alt = np.linspace(0.1, np.pi / 2, 6)
+        flat = atmosphere.extinction(alt, 0.0, wvl)
+        assert flat.shape == (6, 50)
+        assert atmosphere.extinction(0.7, 0.0, wvl).shape == (50,)
 
-    def test_scattering_returns_inverse_steradian(self, atmosphere):
-        scat = atmosphere.scattering(
-            np.array([np.pi / 4]),
-            np.array([0.0]),
-            np.array([np.pi / 3]),
-            np.array([0.5]),
-            np.array([500]) * u.nm,
-        )
-        assert scat.unit == 1 / u.radian**2
+        nested = atmosphere.extinction(alt.reshape(2, 3), 0.0, wvl)
+        assert nested.shape == (2, 3, 50)
+        np.testing.assert_allclose(np.asarray(nested).reshape(6, 50), np.asarray(flat))
 
-    def test_scattering_shape(self, atmosphere):
-        scat = atmosphere.scattering(
+
+class TestScattering:
+    def test_is_forward_peaked_and_finite_where_the_gradation_is_singular(
+        self, atmosphere
+    ):
+        """Forward-peaked Mie scattering piles light up near the source.
+
+        The gradation term must fall back to its limit at equal zenith
+        angles, where the general expression is singular.
+        """
+        broadcast = atmosphere.scattering(
             np.array([np.pi / 4, np.pi / 3])[:, None, None],
             np.array([0.0, 0.1])[:, None, None],
             np.array([np.pi / 2])[None, :, None],
             np.array([0.0])[None, :, None],
             np.array([400, 500]) * u.nm,
         )
-        assert scat.shape[-1] == 2
+        assert broadcast.unit == 1 / u.radian**2
+        assert broadcast.shape[-1] == 2
 
-    def test_scattering_is_finite_at_equal_zenith_angles(self, atmosphere):
-        """The gradation term is singular there and must fall back to its limit."""
-        angle = np.array([np.pi / 4])
-        scat = atmosphere.scattering(
-            angle, np.array([0.0]), angle, np.array([0.5]), np.array([500]) * u.nm
-        )
-        assert np.all(np.isfinite(scat.value))
-
-    def test_scattering_is_stronger_at_small_separations(self, atmosphere):
-        """Forward-peaked Mie scattering means light piles up near the source."""
         wvl = np.array([500]) * u.nm
+        eval_alt = np.array([np.deg2rad(50)])
         near = atmosphere.scattering(
-            np.array([np.deg2rad(50)]),
-            np.array([0.0]),
-            np.array([np.deg2rad(55)]),
-            np.array([0.0]),
-            wvl,
+            eval_alt, np.array([0.0]), np.array([np.deg2rad(55)]), np.array([0.0]), wvl
         )
         far = atmosphere.scattering(
-            np.array([np.deg2rad(50)]),
+            eval_alt,
             np.array([0.0]),
             np.array([np.deg2rad(55)]),
             np.array([np.pi]),
             wvl,
         )
         assert near[0] > far[0]
+
+        equal = atmosphere.scattering(
+            eval_alt, np.array([0.0]), eval_alt, np.array([0.5]), wvl
+        )
+        assert np.all(np.isfinite(equal.value))
 
     def test_phase_functions_are_normalised(self):
         """Both phase functions must integrate to one over the sphere."""

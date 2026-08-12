@@ -1,17 +1,3 @@
-"""Sky brightness sources.
-
-A source knows where its emitters are on the sky and how bright they are; it
-does not know anything about the telescope or the atmosphere.  Sources answer
-two kinds of query.  :meth:`Source.query_direct` returns only the emitters
-that fall inside the instrument's pixels, which is what the direct light path
-needs.  :meth:`Source.query_scattered` returns everything above the horizon,
-because any of it can be scattered into the field of view.
-
-Three shapes of source cover the models in this package: catalogues of
-resolved point sources, diffuse fields that vary smoothly across the sky, and
-solar system bodies whose position depends on time.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -40,7 +26,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-#: Default HEALPix resolution for discretising the sky in scattering queries.
 DEFAULT_NSIDE = 64
 
 
@@ -336,7 +321,7 @@ class CatalogSource(Source):
         -------
         HEALPixSource
             The binned map, with brightness converted to a radiance by
-            dividing by the pixel solid angle.  This source is not modified.
+            dividing by the pixel solid angle.
         """
         npix = hp.nside2npix(nside)
         hp_inds = hp.ang2pix(
@@ -528,10 +513,11 @@ class EphemerisSource(Source):
         )
 
         sky_coords = pixel_coords.transform_to(observation.origin)
-        indices = []
-        for i in range(len(pixel_coords)):
-            seps = sky_coords[i].separation(body_visible).rad
-            indices.append(np.where(seps < pixel_radii[i])[0].astype(int))
+        seps = sky_coords[:, np.newaxis].separation(body_visible).rad
+        indices = [
+            np.flatnonzero(sep < radius)
+            for sep, radius in zip(seps, pixel_radii, strict=True)
+        ]
 
         return field, PixelRefs(indices=indices, weights=None)
 

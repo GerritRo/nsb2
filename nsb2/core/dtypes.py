@@ -1,12 +1,3 @@
-"""Plain data containers exchanged between the stages of a simulation.
-
-These types carry data between sources, atmospheres, solvers and instruments.
-They deliberately hold nothing but arrays, `~astropy.units.Quantity` objects
-and `~astropy.coordinates.SkyCoord` objects, so that any stage of the
-simulation can be run in isolation and the stages can be chained in any order
-supported by the physics.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -29,21 +20,15 @@ __all__ = [
 class SourceField:
     """Sources on the sky together with a reference to their spectra.
 
-    This is the unified output of all source queries: point sources, diffuse
-    fields and ephemeris bodies all produce this type.  The spectra
-    themselves are not stored per source; instead ``spectral_data`` indexes
-    into the shared ``spectral_grid``, which keeps catalogues of millions of
-    stars tractable.
-
     Attributes
     ----------
     coords : astropy.coordinates.SkyCoord
         Source positions, shape ``(N,)``.
     weights : astropy.units.Quantity
-        Per-source brightness weights, shape ``(N, C_w)``.  For radiance
+        Per-source brightness weights, shape ``(N, C_w)``. For radiance
         fields these carry the solid-angle-dependent scaling.
     spectral_data : numpy.ndarray
-        Coordinates into ``spectral_grid``, shape ``(N, D)``.  ``D`` is zero
+        Coordinates into ``spectral_grid``, shape ``(N, D)``. ``D`` is zero
         when all sources share a single spectrum.
     spectral_grid : nsb2.core.spectral.SpectralGrid
         The grid the spectral coordinates refer to.

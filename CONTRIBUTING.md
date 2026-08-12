@@ -18,9 +18,7 @@ pre-commit install
 pytest
 ```
 
-nsb2 follows the [ctapipe style guide](https://ctapipe.readthedocs.io/en/stable/developer-guide/style-guide.html)
-and is kept co-installable with ctapipe, so that it can be used from a
-ctapipe analysis or eventually vendored into it.
+nsb2 tries to follow the [ctapipe style guide](https://ctapipe.readthedocs.io/en/stable/developer-guide/style-guide.html).
 
 ---
 
@@ -61,36 +59,6 @@ changelogs automatically. Use `cz commit` instead of `git commit`:
 cz commit
 ```
 
-This walks you through an interactive prompt:
-
-```
-? Select the type of change you are committing: (Use arrow keys)
- » fix: A bug fix
-   feat: A new feature
-   docs: Documentation only changes
-   refactor: A code change that neither fixes a bug nor adds a feature
-   perf: A code change that improves performance
-   test: Adding missing or correcting existing tests
-   build: Changes that affect the build system or dependencies
-   ci: Changes to CI configuration files and scripts
-   chore: Other changes that don't modify src or test files
-
-? What is the scope of this change? (press enter to skip)
-  core, emitter, atmosphere, instrument
-
-? Write a short, imperative description of the change:
-  > fix airglow model interpolation at high zenith angles
-
-? Provide additional contextual information (press enter to skip):
-  > The spline extrapolation produced NaN for zenith > 80 degrees
-
-? Is this a BREAKING CHANGE?  No
-? Footer (press enter to skip, e.g. "Closes #42"):
-  > Fixes #12
-```
-
-Result: `fix(core): fix airglow model interpolation at high zenith angles`
-
 You can also write commit messages manually -- the format is:
 
 ```
@@ -98,9 +66,6 @@ You can also write commit messages manually -- the format is:
 ```
 
 Breaking changes use `!` after the type: `feat(core)!: require explicit instrument config`
-
-**Why this matters:** `CHANGELOG.md` is generated directly from these commit
-messages at release time via `cz bump --changelog`.
 
 ---
 
@@ -125,7 +90,7 @@ messages at release time via `cz bump --changelog`.
 pre-commit run --all-files               # Everything CI's lint job runs
 ruff check nsb2                          # Lint
 ruff check --fix nsb2                    # Lint + auto-fix
-ruff format nsb2                         # Format (black-compatible, 88 cols)
+ruff format nsb2                         # Format
 mypy nsb2                                # Type check
 pytest                                   # Tests
 pytest -m remote_data                    # Tests that download reference data
@@ -148,33 +113,7 @@ Fixtures shared across subpackages go in `nsb2/conftest.py`. Any test that
 needs the network must be marked `@pytest.mark.remote_data`, so that the
 default `pytest` run stays offline and fast.
 
-**CI does not run the `remote_data` tests.** They are the only thing that
-checks the external reference data is still where we expect it — a retired
-CALSPEC revision once broke every star source with a silent 404. Run them
-yourself before a release, and whenever you touch an emitter:
-
-```bash
-pytest -m remote_data
-```
-
-Prefer making code testable offline over adding a new `remote_data` test.
-The pattern used throughout is to keep the physics in module-level functions
-and let only the data loading be network-bound — see
-`nsb2/emitter/moon.py`, where the ROLO albedo model is fully testable
-without the solar spectrum download. Downloads themselves can be stubbed
-with `nsb2.conftest.stub_download`.
-
-### Reference arrays
-
-`nsb2/core/tests/test_regression.py` pins the offline computation chain to
-stored reference values. They detect drift; they do not validate against a
-published table. If a change moves them, work out why before regenerating:
-
-```bash
-python -m nsb2.core.tests.test_regression
-```
-
-### Conventions
+### Conventions (as in ctapipe)
 
 - Every public function, class and module carries a
   [NumPy-style docstring](https://numpydoc.readthedocs.io/en/latest/format.html).
@@ -210,9 +149,7 @@ Maintainers only. Uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.
 
 1. Create `release/x.y.z` from `dev`
 2. `cz bump --changelog` to bump version + generate changelog
-3. Run the full test suite **including** `pytest -m remote_data` — CI never
-   runs those, so this is the only check that the external reference data is
-   still reachable
+3. Run the full test suite **including** `pytest -m remote_data`.
 4. Build the docs (`cd docs && make html`); warnings are errors
 5. Merge into `main`, tag `vx.y.z`, backmerge into `dev`
 

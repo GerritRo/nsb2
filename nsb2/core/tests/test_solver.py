@@ -1,5 +1,3 @@
-"""Tests for :mod:`nsb2.core.solver`."""
-
 import astropy.units as u
 import numpy as np
 import pytest
@@ -14,23 +12,18 @@ from nsb2.core.solver import (
 )
 
 
-class TestTrapzEinsum:
-    def test_matches_numpy_trapezoid_for_a_flat_integrand(self):
+class TestSolverHelpers:
+    def test_trapz_einsum_integrates_a_flat_integrand(self):
         wvl = np.linspace(400, 500, 21) * u.nm
-        a = np.ones((3, 21))
-        b = np.ones((21, 2))
-        result = _trapz_einsum(a, b, wvl, "zN,Nc,N->zc")
+        result = _trapz_einsum(np.ones((3, 21)), np.ones((21, 2)), wvl, "zN,Nc,N->zc")
         assert result.shape == (3, 2)
         np.testing.assert_allclose(result.to_value(u.nm), 100.0)
-
-
-class TestSolverBase:
-    def test_compile_defaults_to_no_cost(self):
+        # The base solver is a no-op with nothing to pre-compute.
         assert Solver().compile(None, None, None) == 0
 
 
-class TestExplicitDirectSolver:
-    def test_rates_are_attenuated_by_extinction(
+class TestExplicitSolvers:
+    def test_direct_rates_are_attenuated_by_extinction(
         self, diffuse_source, atmosphere, bandpass, observation
     ):
         field, _ = diffuse_source.query_direct(
@@ -43,9 +36,7 @@ class TestExplicitDirectSolver:
         )
         assert np.all(rates.value >= 0)
 
-
-class TestExplicitScatteredSolver:
-    def test_rates_have_grid_shape(
+    def test_scattered_rates_span_the_evaluation_grid(
         self, diffuse_source, atmosphere, bandpass, instrument, observation
     ):
         field = diffuse_source.query_scattered(observation, nside=4)
@@ -57,42 +48,36 @@ class TestExplicitScatteredSolver:
         assert rates.shape[2] == len(field.coords)
 
 
-class TestLUTDirectSolver:
-    def test_compute_before_compile_raises(
+class TestLUTSolvers:
+    def test_direct_lut_must_be_compiled_before_use(
         self, diffuse_source, atmosphere, bandpass, observation, instrument
     ):
         field, _ = diffuse_source.query_direct(
             observation, instrument.pixel_coords(observation), instrument.pixel_radii()
         )
+        solver = LUTDirectSolver()
         with pytest.raises(RuntimeError, match="compile"):
-            LUTDirectSolver().compute_rates(diffuse_source, field, atmosphere, bandpass)
+            solver.compute_rates(diffuse_source, field, atmosphere, bandpass)
 
-    def test_compile_returns_zero_cost(self, diffuse_source, instrument, atmosphere):
-        solver = LUTDirectSolver()
-        assert solver.compile(diffuse_source, instrument, atmosphere) == 0
-
-    def test_compile_accepts_unknown_options(
-        self, diffuse_source, instrument, atmosphere
-    ):
-        """Unknown options belong to other solvers and must be ignored."""
-        solver = LUTDirectSolver()
-        solver.compile(diffuse_source, instrument, atmosphere, scattering_theta_bins=3)
+        assert (
+            solver.compile(
+                diffuse_source, instrument, atmosphere, scattering_theta_bins=3
+            )
+            == 0
+        )
         assert diffuse_source in solver._luts
 
-
-class TestLUTScatteredSolver:
-    def test_compute_before_compile_raises(
+    def test_scattered_lut_must_be_compiled_before_use(
         self, diffuse_source, atmosphere, bandpass, observation, instrument
     ):
         field = diffuse_source.query_scattered(observation, nside=4)
         eval_coords = instrument.eval_grid(observation, n=2)
+        solver = LUTScatteredSolver()
         with pytest.raises(RuntimeError, match="compile"):
-            LUTScatteredSolver().compute_rates(
+            solver.compute_rates(
                 diffuse_source, field, atmosphere, bandpass, eval_coords
             )
 
-    def test_compile_stores_a_table(self, diffuse_source, instrument, atmosphere):
-        solver = LUTScatteredSolver()
         solver.compile(
             diffuse_source,
             instrument,

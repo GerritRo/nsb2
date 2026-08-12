@@ -1,11 +1,3 @@
-"""Framework-independent building blocks of a night sky background simulation.
-
-The subpackage is deliberately free of any particular emission or atmosphere
-model: it defines the interfaces those models implement, the data containers
-they exchange, and the pipeline that drives them.  Concrete models live in
-:mod:`nsb2.emitter`, :mod:`nsb2.atmosphere` and :mod:`nsb2.instrument`.
-"""
-
 from nsb2.core.atmosphere import Atmosphere
 from nsb2.core.coordinates import SunRelativeEclipticFrame
 from nsb2.core.dtypes import PixelRefs, Prediction, ResolvedField, SourceField

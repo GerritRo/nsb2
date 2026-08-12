@@ -1,5 +1,3 @@
-"""Airglow emission model."""
-
 import astropy.units as u
 import numpy as np
 
@@ -14,7 +12,6 @@ __all__ = [
 ]
 
 
-#: Mean Earth radius used by the van Rhijn function, in kilometres.
 EARTH_RADIUS = 6738
 
 
@@ -54,8 +51,8 @@ def from_eso_skycalc(height: u.Quantity, sfu: float) -> LonLatSource:
 
     The tabulated spectrum ships with ``nsb2`` and was generated with the ESO
     SkyCalc sky model [Noll2012]_ at a solar radio flux of 130 sfu.  It is
-    rescaled to the requested activity level using the linear relation of
-    [Patat2008]_, and brightened towards the horizon by :func:`van_rhijn`.
+    rescaled to the requested activity level using a linear fit to [Noll2012]_
+    Figure 14, and brightened towards the horizon by :func:`van_rhijn`.
 
     Parameters
     ----------
@@ -63,8 +60,8 @@ def from_eso_skycalc(height: u.Quantity, sfu: float) -> LonLatSource:
         Height of the emitting layer above the surface, in any length unit.
         Around 90 km for the dominant hydroxyl and oxygen emission.
     sfu : float
-        Solar radio flux at 10.7 cm in solar flux units, a proxy for solar
-        activity.  Ranges from roughly 70 at solar minimum to 250 at maximum.
+        Solar radio flux at 10.7 cm in solar flux units, as a proxy for solar
+        activity.
 
     Returns
     -------

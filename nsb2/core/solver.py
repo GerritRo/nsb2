@@ -1,14 +1,3 @@
-"""Strategies for turning source spectra into band-integrated rates.
-
-Two families of solver implement the same physics with different trade-offs.
-The *explicit* solvers integrate the full spectrum of every source, which is
-exact but scales with the number of sources.  The *LUT* solvers pre-integrate
-the spectra onto a lookup table during a compilation step, exploiting the
-azimuthal symmetry of the atmosphere, and then only interpolate at predict
-time.  For catalogues with many sources the lookup tables are orders of
-magnitude faster at a small cost in accuracy.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -48,8 +37,7 @@ def _trapz_einsum(a, b, wvl, eins_str):
 
     Equivalent to an :func:`numpy.einsum` contraction of ``a`` and ``b``
     followed by trapezoidal integration over wavelength, but without
-    materialising the full outer product, which would not fit in memory for
-    realistic lookup table sizes.
+    materialising the full outer product.
 
     Parameters
     ----------

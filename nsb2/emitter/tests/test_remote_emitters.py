@@ -1,10 +1,3 @@
-"""Tests for the emission models that download their reference data.
-
-These are marked ``remote_data`` because they fetch reference spectra and
-catalogues from STScI, Zenodo and the SVO Filter Profile Service.  Run them
-with ``pytest -m remote_data``.
-"""
-
 import astropy.units as u
 import numpy as np
 import pytest
@@ -39,11 +32,17 @@ class TestMoon:
         assert from_noll2013().spectral_grid.flx.shape[-1] == 3
 
     def test_full_moon_is_brighter_than_crescent(self):
-        """Phase angle zero is full Moon; the albedo must fall away from it."""
+        """The phase axis is signed, so full Moon sits at its centre."""
         grid = from_noll2013().spectral_grid
-        full = np.nanmedian(grid.flx[0].value)
-        crescent = np.nanmedian(grid.flx[-1].value)
+        phase_angles = grid.points[0]
+
+        def at(degrees):
+            return np.argmin(np.abs(phase_angles - np.deg2rad(degrees)))
+
+        full = np.nanmedian(grid.flx[at(0)].value)
+        crescent = np.nanmedian(grid.flx[at(150)].value)
         assert full > crescent
+        assert np.nanmedian(grid.flx[at(-150)].value) == pytest.approx(crescent)
 
 
 class TestZodiacal:
@@ -66,12 +65,7 @@ class TestZodiacal:
         assert float(west[0].value) == pytest.approx(float(east[0].value))
 
     def test_elongation_accounts_for_ecliptic_latitude(self):
-        """Elongation is the great-circle distance, not the longitude offset.
-
-        A direction on the Sun's meridian but well above the ecliptic is far
-        from the Sun; reading its elongation off the longitude alone would
-        put it at the near end of the tabulated range.
-        """
+        """Elongation is the great-circle distance, not the longitude offset."""
         data = from_leinert1998().data_function
         on_ecliptic = data(np.array([0.0]), np.array([0.0]))[0, 0]
         high_latitude = data(np.array([0.0]), np.array([np.deg2rad(60)]))[0, 0]

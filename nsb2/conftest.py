@@ -1,8 +1,4 @@
-"""Fixtures shared by the whole test suite.
-
-Placed at the package root so that pytest picks it up for every
-``nsb2/*/tests`` directory.
-"""
+"""common pytest fixtures."""
 
 import astropy.units as u
 import numpy as np

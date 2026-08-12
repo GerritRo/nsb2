@@ -1,5 +1,3 @@
-# Data files shipped inside the package are declared in pyproject.toml under
-# [tool.setuptools.package-data]; this file only trims the source distribution.
 prune build
 prune docs/_build
 prune docs/api

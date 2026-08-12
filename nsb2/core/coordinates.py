@@ -1,10 +1,3 @@
-"""Additional astropy coordinate frames used by nsb2.
-
-Registers :class:`SunRelativeEclipticFrame` with astropy's frame transform
-graph, so that ordinary `~astropy.coordinates.SkyCoord` machinery can convert
-to and from it.
-"""
-
 from typing import ClassVar
 
 import astropy.units as u
@@ -29,9 +22,7 @@ __all__ = [
 class SunRelativeEclipticFrame(BaseCoordinateFrame):
     """Ecliptic coordinates with longitude measured from the Sun.
 
-    Zodiacal light is fixed relative to the Sun rather than to the stars, so
-    tabulated models of it -- such as [Leinert1998]_ -- are given in this
-    frame.  Longitude ``alpha`` is the ecliptic longitude minus the Sun's;
+    Longitude ``alpha`` is the ecliptic longitude minus the Sun's;
     latitude ``beta`` is the ecliptic latitude.
 
     Parameters
@@ -146,8 +137,6 @@ def sunrel_to_gte(sunrel_coords, gte_frame):
     lat = sunrel_coords.beta
     distance = sunrel_coords.distance if sunrel_coords.distance.unit != u.one else None
 
-    # A FunctionTransform must yield an instance of the target frame class,
-    # so this cannot return a SkyCoord.
     return GeocentricTrueEcliptic(
         lon=lon, lat=lat, distance=distance, obstime=obstime, equinox=gte_frame.equinox
     )

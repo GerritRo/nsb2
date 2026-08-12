@@ -1,15 +1,3 @@
-"""Spectral containers and wavelength integration.
-
-This module provides the spectral building blocks used throughout ``nsb2``:
-a :class:`Bandpass` describing an instrument's wavelength response, a
-:class:`SpectralGrid` holding spectra on an N-dimensional parameter grid, and
-a :class:`RateGrid` holding the same grid after integration over wavelength.
-
-The :func:`integrate_wavelength` helper is used for every wavelength
-integration in the package.  It keeps unit handling explicit rather than
-relying on the numerical backend to propagate (or silently drop) units.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -37,12 +25,6 @@ logger = logging.getLogger(__name__)
 SVO_TABLE_URL = "https://svo2.cab.inta-csic.es/theory/fps/fps.php?ID="
 CALSPEC_URL = "https://archive.stsci.edu/hlsps/reference-atlases/cdbs/current_calspec/"
 
-#: CALSPEC reference spectrum defining the Vega magnitude zeropoint.
-#:
-#: Pinned to a specific revision so that magnitudes stay reproducible.  STScI
-#: retires superseded revisions from ``current_calspec``, so this needs
-#: bumping when a new one is released; assign to it to use another revision
-#: without modifying the package.
 VEGA_CALSPEC_FILE = "alpha_lyr_stis_012.fits"
 
 
@@ -53,9 +35,6 @@ def integrate_wavelength(
 
     Composite Simpson's rule is applied to the plain numerical values, and the
     unit of the result is reconstructed as ``flux.unit * wavelength.unit``.
-    Doing the bookkeeping here rather than handing `~astropy.units.Quantity`
-    objects to :func:`scipy.integrate.simpson` keeps the result independent of
-    whether the integration backend understands units.
 
     Parameters
     ----------
@@ -104,14 +83,6 @@ class Bandpass:
     spline that evaluates to zero outside the tabulated range, so a
     `Bandpass` can be called on any wavelength grid.
 
-    .. warning::
-       Being cubic, the spline overshoots at sharp edges and can return
-       small negative transmissions between tabulated points.  For the
-       bundled passbands this stays below ``2e-4`` of the peak, but a
-       coarsely sampled, steep-edged curve loaded with :meth:`from_csv` can
-       undershoot by several per cent of its peak.  Sample the transmission
-       finely enough that it is smooth on the scale of the spacing.
-
     Parameters
     ----------
     wvl : astropy.units.Quantity
@@ -127,14 +98,6 @@ class Bandpass:
         The tabulated transmission values.
     min, max : astropy.units.Quantity
         Lower and upper edge of the tabulated wavelength range.
-
-    Notes
-    -----
-    ``wvl`` is not checked with :func:`~astropy.units.quantity_input`: this
-    module uses ``from __future__ import annotations``, which makes every
-    annotation a string, and the decorator then fails trying to read
-    ``transmission``'s annotation as a unit.  The wavelength unit is enforced
-    at use instead, by :meth:`__call__` converting to it.
 
     Examples
     --------
@@ -172,12 +135,9 @@ class Bandpass:
         """astropy.units.Quantity: Vega zeropoint of this passband.
 
         The band-integrated photon-weighted flux of Vega, computed from the
-        CALSPEC reference spectrum ``alpha_lyr_stis_011`` [Bohlin2014]_.  It
+        CALSPEC reference spectrum ``alpha_lyr_stis_012`` [Bohlin2014]_.  It
         is the denominator of the Vega magnitude system, so a source with
         ``vegazero``-equal integrated flux has magnitude zero in this band.
-
-        Downloaded and cached on first access rather than at construction, so
-        that constructing a `Bandpass` never requires network access.
 
         Raises
         ------
@@ -259,9 +219,8 @@ class Bandpass:
 class SpectralGrid:
     """Spectra tabulated on an N-dimensional grid of source parameters.
 
-    A grid maps a point in some parameter space -- for example a stellar
-    colour index, or the lunar phase angle -- onto a spectrum.  Calling the
-    grid interpolates between the tabulated spectra.
+    A grid maps a point in some parameter space onto a spectrum.
+    Calling the grid interpolates between the tabulated spectra.
 
     Parameters
     ----------

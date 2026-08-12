@@ -1,11 +1,3 @@
-"""Moonlight emission model.
-
-The Moon shines by reflected sunlight, so its spectrum is the solar spectrum
-scaled by the lunar albedo.  The albedo model is separated from the source
-factory below so that it can be evaluated -- and tested -- without the
-network access the solar reference spectrum needs.
-"""
-
 import logging
 
 import astropy.units as u
@@ -32,24 +24,27 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-#: Mean solid angle of the lunar disc, in steradian, at the reference distance.
 LUNAR_SOLID_ANGLE = 6.4236e-5
 
-#: Earth-Moon distance the reference solid angle applies to, in kilometres.
 LUNAR_REFERENCE_DISTANCE = 384400
 
-#: Albedo reduction applied to the ROLO fit, as recommended by Noll et al.
 ROLO_ALBEDO_SCALE = 0.87
 
-#: Libration spread bracketing the albedo uncertainty, in degrees.
+# Bound on the Moon's libration in longitude, in degrees. This is also the
+# range the ROLO libration coefficients were fitted over, so it doubles as the
+# validity limit of that term -- see rolo_log_albedo.
 LIBRATION_SPREAD = 8
 
-#: Number of phase angle samples tabulated between new and full Moon.
-N_PHASE_SAMPLES = 50
+# The phase axis is sampled per branch -- waning and waxing -- so the total is
+# odd and one sample lands exactly on full Moon.
+N_PHASE_SAMPLES_PER_BRANCH = 50
+N_PHASE_SAMPLES = 2 * N_PHASE_SAMPLES_PER_BRANCH - 1
 
-#: The four fixed exponential and cosine parameters of the ROLO fit.
-#: ``A1`` and ``A2`` are e-folding phase angles in radians; ``A3`` and ``A4``
-#: set the phase and period of the cosine term.
+ECLIPTIC_OBLIQUITY = np.deg2rad(23.439281)
+ECLIPTIC_POLE_ICRS = np.array(
+    [0.0, -np.sin(ECLIPTIC_OBLIQUITY), np.cos(ECLIPTIC_OBLIQUITY)]
+)
+
 ROLO_PHASE_PARAMETERS = (
     4.06054,
     12.8802,
@@ -64,53 +59,58 @@ def load_rolo_table() -> np.ndarray:
     Returns
     -------
     numpy.ndarray
-        Shape ``(25, 11)``.  Column 0 holds the band wavelength in
+        Shape ``(25, 11)``. Column 0 holds the band wavelength in
         nanometres; columns 1 to 10 hold that band's ROLO coefficients.
-
-    Notes
-    -----
-    The table ships with ``nsb2``, so this needs no network access.
     """
     return np.genfromtxt(ASSETS_PATH / "noll2013_lunar_rolo.dat", delimiter=",")
 
 
-def rolo_log_albedo(coefficients, phase_angle, sun_selenographic_lon):
+def rolo_log_albedo(coefficients, phase_angle, libration_lon):
     """Evaluate the ROLO log-albedo of one wavelength band.
 
     The empirical fit of [Kieffer2005]_ is a sum of three terms: a cubic
-    polynomial in phase angle, an odd polynomial in the Sun's selenographic
-    longitude that carries the libration dependence, and two exponentials
-    plus a cosine that capture the opposition surge near full Moon.
+    polynomial in phase angle, an odd polynomial in the observer's
+    selenographic longitude that carries the libration dependence, and two
+    exponentials plus a cosine that capture the opposition surge near full
+    Moon.
+
+    The phase and libration arguments are independent geometry.  All of the
+    phase dependence sits in the first and third terms; the libration term
+    contributes well under a per cent across its physical range and must not
+    be driven by the phase angle.
 
     Parameters
     ----------
     coefficients : array_like
-        The ten ROLO coefficients of the band, i.e. columns 1 to 10 of one
-        row of :func:`load_rolo_table`.
+        The ten ROLO coefficients of the band.
     phase_angle : array_like
-        Absolute lunar phase angle in radians, zero at full Moon.
-    sun_selenographic_lon : array_like
-        Selenographic longitude of the Sun in radians, near zero at full
-        Moon.  The fit was derived over roughly ``[-pi/2, pi/2]``; beyond
-        that the fifth-power term diverges rapidly and the result stops
-        being physical.
+        Absolute lunar phase angle in radians.
+    libration_lon : array_like
+        Selenographic longitude of the observer in radians, i.e. the Moon's
+        libration in longitude.  Physically bounded by
+        :data:`LIBRATION_SPREAD`, which is also the range the fit was derived
+        over.  The fifth-power term turns over near 90 degrees and diverges
+        beyond it, so extrapolating this argument is not meaningful.
 
     Returns
     -------
     numpy.ndarray
         Natural logarithm of the disc-equivalent albedo.
 
-    See Also
-    --------
-    rolo_albedo : Interpolates this across bands onto a wavelength grid.
+    Notes
+    -----
+    The full model of [Kieffer2005]_ carries two further terms in the
+    selenographic latitude and longitude of the Sun.  Those are omitted here,
+    so the fit is even in phase angle and cannot reproduce the difference
+    between a waxing and a waning Moon.
     """
     p = np.asarray(coefficients)
     g = phase_angle
-    s_sel = sun_selenographic_lon
+    phi = libration_lon
     p_1, p_2, p_3, p_4 = ROLO_PHASE_PARAMETERS
 
     sum_a = p[0] + p[1] * g + p[2] * g**2 + p[3] * g**3
-    sum_b = p[4] * s_sel + p[5] * s_sel**3 + p[6] * s_sel**5
+    sum_b = p[4] * phi + p[5] * phi**3 + p[6] * phi**5
     sum_c = (
         p[7] * np.exp(-g / p_1)
         + p[8] * np.exp(-g / p_2)
@@ -120,35 +120,32 @@ def rolo_log_albedo(coefficients, phase_angle, sun_selenographic_lon):
     return sum_a + sum_b + sum_c
 
 
-def rolo_albedo(rolo_table, wvl: u.Quantity, phase_angle, sun_selenographic_lon):
+def rolo_albedo(rolo_table, wvl: u.Quantity, phase_angle, libration_lon):
     """Interpolate the ROLO albedo onto a wavelength grid.
 
     The model is tabulated in 25 discrete bands, so each band is evaluated at
     the requested geometry and the result linearly interpolated in
-    wavelength.  The 13 per cent reduction of [Noll2012]_ is applied.
+    wavelength. The 13 per cent reduction of [Noll2012]_ is applied.
 
     Parameters
     ----------
     rolo_table : numpy.ndarray
         Coefficient table from :func:`load_rolo_table`.
     wvl : astropy.units.Quantity
-        Wavelengths to evaluate at.  Must lie within the tabulated range;
-        outside it the linear spline extrapolates.
+        Wavelengths to evaluate at.
     phase_angle : float
         Absolute lunar phase angle in radians.
-    sun_selenographic_lon : float
-        Selenographic longitude of the Sun in radians; see
-        :func:`rolo_log_albedo` for its valid range.
+    libration_lon : float
+        Libration in longitude in radians; see :func:`rolo_log_albedo` for
+        its valid range.
 
     Returns
     -------
     numpy.ndarray
-        Dimensionless disc-equivalent albedo at each wavelength.  At full
-        Moon this runs from about 0.09 at 350 nm to about 0.21 at 1060 nm.
+        Dimensionless disc-equivalent albedo at each wavelength.
     """
     bands = [
-        np.exp(rolo_log_albedo(row[1:], phase_angle, sun_selenographic_lon))
-        * ROLO_ALBEDO_SCALE
+        np.exp(rolo_log_albedo(row[1:], phase_angle, libration_lon)) * ROLO_ALBEDO_SCALE
         for row in rolo_table
     ]
     spline = UnivariateSpline(rolo_table[:, 0], np.asarray(bands), k=1, s=0)
@@ -156,11 +153,8 @@ def rolo_albedo(rolo_table, wvl: u.Quantity, phase_angle, sun_selenographic_lon)
 
 
 def lunar_distance_scaling(obstime) -> u.Quantity:
-    """Scale the lunar brightness for the Sun-Moon and Moon-Earth distances.
-
-    Both the sunlight falling on the Moon and the solid angle the Moon
-    subtends vary over the orbit, so the tabulated albedo is corrected by the
-    inverse square of each distance relative to its reference value.
+    """
+    Scale the lunar brightness for the Sun-Moon and Moon-Earth distances.
 
     Parameters
     ----------
@@ -185,11 +179,8 @@ def lunar_distance_scaling(obstime) -> u.Quantity:
 
 
 def lunar_phase_angle(obstime) -> np.ndarray:
-    """Compute the lunar phase angle seen from Earth.
-
-    The phase angle is the Sun-Moon-Earth angle: zero at full Moon and pi at
-    new Moon.  It is computed from barycentric positions rather than from
-    ecliptic longitudes so that it stays correct out of the ecliptic plane.
+    """
+    Compute the signed lunar phase angle seen from Earth.
 
     Parameters
     ----------
@@ -199,19 +190,34 @@ def lunar_phase_angle(obstime) -> np.ndarray:
     Returns
     -------
     numpy.ndarray
-        Phase angle in radians, in ``[0, pi]``, shape ``(1,)`` for a scalar
-        time.
+        Phase angle in radians, in ``[-pi, pi]``, shape ``(N,)`` for ``N``
+        times and ``(1,)`` for a scalar one. Positive while the Moon is
+        waxing, negative when waning.
     """
+    # Reshaping to (3, N) lets scalar and array times share one code path.
     pos = {
-        b: get_body_barycentric(b, obstime).xyz.value for b in ("sun", "moon", "earth")
+        b: get_body_barycentric(b, obstime).xyz.value.reshape(3, -1)
+        for b in ("sun", "moon", "earth")
     }
 
     v_sun = pos["sun"] - pos["moon"]
     v_earth = pos["earth"] - pos["moon"]
 
-    cos_g = np.dot(v_sun, v_earth) / (np.linalg.norm(v_sun) * np.linalg.norm(v_earth))
+    cos_g = np.einsum("ij,ij->j", v_sun, v_earth) / (
+        np.linalg.norm(v_sun, axis=0) * np.linalg.norm(v_earth, axis=0)
+    )
+    g = np.arccos(np.clip(cos_g, -1, 1))
 
-    return np.atleast_1d(np.arccos(np.clip(cos_g, -1, 1)))
+    # The Moon leads the Sun in ecliptic longitude by 0 to 180 deg while waxing.
+    r_moon = pos["moon"] - pos["earth"]
+    r_sun = pos["sun"] - pos["earth"]
+    handedness = np.einsum(
+        "ij,i->j", np.cross(r_sun, r_moon, axis=0), ECLIPTIC_POLE_ICRS
+    )
+
+    # Never zero: an exactly coplanar Moon is counted as waxing rather than
+    # having its phase angle collapse to zero.
+    return np.where(handedness < 0, -1.0, 1.0) * g
 
 
 def tabulate_lunar_spectra(
@@ -231,35 +237,37 @@ def tabulate_lunar_spectra(
     Returns
     -------
     phase_angles : numpy.ndarray
-        The tabulated phase angles in radians, shape
-        ``(N_PHASE_SAMPLES,)``.
+        The tabulated signed phase angles in radians, shape
+        ``(N_PHASE_SAMPLES,)``, spanning ``[-pi, pi]``.
     spectra : astropy.units.Quantity
-        Reflected photon spectra, shape ``(N_PHASE_SAMPLES, W, 3)``.  The
+        Reflected photon spectra, shape ``(N_PHASE_SAMPLES, W, 3)``. The
         trailing axis holds the three libration variants, ordered so that
         they bracket the albedo uncertainty.
 
     Notes
     -----
-    The Sun's selenographic longitude tracks the phase angle: the sub-solar
-    point is near longitude zero at full Moon and swings towards the limb as
-    the Moon wanes.  The libration offsets are added on top, bracketing the
-    uncertainty left by the observer-libration terms of [Kieffer2005]_ that
-    this implementation omits.
+    The libration variants are offsets in the observer's selenographic
+    longitude alone.  They are deliberately independent of the phase angle:
+    the two are separate arguments to the ROLO fit, and coupling them drives
+    the libration polynomial far outside the range it was derived over, where
+    its fifth-power term diverges.
 
-    Only the absolute phase angle is available from
-    :func:`lunar_phase_angle`, so the same sign of the selenographic
-    longitude is used for a waxing and a waning Moon.  Because the fit is odd
-    in that argument, this is an approximation worth up to about 15 per cent
-    at quarter phase.
+    Because the fit omits the Sun's selenographic coordinates it is even in
+    phase angle, so the tabulated axis is symmetric about full Moon.  It is
+    still tabulated signed, over ``[-pi, pi]``, to match the convention of
+    :func:`lunar_phase_angle` and to leave room for a waxing/waning
+    asymmetry once those terms are added.
     """
     logger.debug("tabulating lunar albedo over %d phase angles", N_PHASE_SAMPLES)
-    phase_angles = np.deg2rad(np.linspace(0, 180, N_PHASE_SAMPLES))
-    libration = np.deg2rad([LIBRATION_SPREAD, 0, -LIBRATION_SPREAD])
+    phase_angles = np.deg2rad(np.linspace(-180, 180, N_PHASE_SAMPLES))
+    # Ascending, so the trailing axis comes out as the minimum, median and
+    # maximum a Prediction expects: the fit rises with libration longitude.
+    libration = np.deg2rad([-LIBRATION_SPREAD, 0, LIBRATION_SPREAD])
 
     spec = np.zeros((len(phase_angles), len(wvl), len(libration)))
     for i, g in enumerate(phase_angles):
         for j, offset in enumerate(libration):
-            albedo = rolo_albedo(rolo_table, wvl, g, g - offset)
+            albedo = rolo_albedo(rolo_table, wvl, abs(g), offset)
             spec[i, :, j] = albedo * solar_spectrum
 
     spec = spec * solar_spectrum.unit
@@ -296,9 +304,12 @@ def from_noll2013() -> EphemerisSource:
 
     Notes
     -----
+    The selenographic terms of [Kieffer2005]_ for the Sun are not
+    implemented, so the albedo is symmetric about full Moon: a waxing and a
+    waning Moon at the same phase angle are predicted to be equally bright.
+
     Requires network access on first use to fetch the solar reference
-    spectrum; see :func:`nsb2.core.photometry.SolarSpectrumRieke2008`.  The
-    albedo model itself needs no network -- see :func:`rolo_albedo`.
+    spectrum; see :func:`nsb2.core.photometry.SolarSpectrumRieke2008`.
     """
     rolo = load_rolo_table()
     wvl, spectrum = SolarSpectrumRieke2008()

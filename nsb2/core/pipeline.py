@@ -1,13 +1,3 @@
-"""Composition of sources, light paths, atmosphere and instrument.
-
-A pipeline is the top-level object of a simulation: it holds one instrument
-and atmosphere together with the sources and light paths to trace, and runs
-every combination of the two for a given observation.  Pipelines can be added
-together, which is how contributions computed with different settings -- a
-lookup table for a star catalogue, explicit integration for the Moon -- are
-combined into one prediction.
-"""
-
 from __future__ import annotations
 
 import logging

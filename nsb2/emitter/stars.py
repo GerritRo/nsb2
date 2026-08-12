@@ -1,5 +1,3 @@
-"""Starlight emission models."""
-
 import logging
 
 import astropy.units as u
@@ -25,10 +23,8 @@ logger = logging.getLogger(__name__)
 GAIA_CATALOG_URL = "https://zenodo.org/records/15396676/files/gaiadr3.npy"
 GAIA_MAP_URL = "https://zenodo.org/records/15396676/files/gaia_mag15plus.npy"
 
-#: Magnitude splitting the resolved catalogue from the integrated map.
 GAIA_SPLIT_MAGNITUDE = 15
 
-#: Upper bound on the RP-BP colour index, beyond which no template matches.
 MAX_RP_BP = 0.3
 
 
@@ -42,16 +38,16 @@ def _gaia_bandpasses() -> tuple[Bandpass, Bandpass, Bandpass]:
 
 
 def _rp_bp_color(rp: np.ndarray, bp: np.ndarray) -> np.ndarray:
-    """Compute the RP-BP colour index, filling gaps and clipping the red end.
+    """Compute the RP-BP colour index, filling gaps and clipping the blue end.
 
-    Sources without a valid magnitude in one band are assigned the brightest
+    Sources without a valid magnitude in one band are assigned the highest
     magnitude present, and the index is clipped at :data:`MAX_RP_BP` because
-    the template library holds no spectrum redder than that.
+    the template library holds no spectrum bluer than that.
 
     Parameters
     ----------
     rp, bp : numpy.ndarray
-        Red and blue photometer magnitudes.  Not modified.
+        Red and blue Gaia magnitudes.
 
     Returns
     -------
@@ -67,17 +63,12 @@ def from_gaia_dr3_catalog() -> CatalogSource:
     """Build a point source catalogue from the bright half of Gaia DR3.
 
     Stars brighter than G = :data:`GAIA_SPLIT_MAGNITUDE` are resolved
-    individually, since a single bright star in the field of view raises the
-    background of the pixels it falls into far above their neighbours.  Their
-    spectra are inferred from the RP-BP colour index against the [Pickles1998]_
-    template library.
+    individually. Their spectra are inferred from the RP-BP colour index
+    against the [Pickles1998]_ template library.
 
     Returns
     -------
     nsb2.core.sources.CatalogSource
-        The resolved stars.  Call
-        :meth:`~nsb2.core.sources.CatalogSource.build_balltree` before
-        querying it.
 
     See Also
     --------
@@ -108,10 +99,9 @@ def from_gaia_dr3_catalog() -> CatalogSource:
 def from_gaia_dr3_map() -> HEALPixSource:
     """Build a diffuse map from the faint half of Gaia DR3.
 
-    Stars fainter than G = :data:`GAIA_SPLIT_MAGNITUDE` are too numerous to
-    trace individually and too dim to resolve, so they are pre-binned into a
-    HEALPix map of integrated magnitude and mean colour and treated as
-    diffuse emission.
+    Stars fainter than G = :data:`GAIA_SPLIT_MAGNITUDE` are pre-binned into a
+    HEALPix map of integrated magnitude and their mean colour and treated as
+    diffuse emission for computational reasons.
 
     Returns
     -------
@@ -147,8 +137,7 @@ def from_gaia_suppl_catalog() -> CatalogSource:
     """Build a catalogue of the stars Gaia is too bright to measure.
 
     The very brightest stars saturate Gaia's detectors and are missing or
-    unreliable in DR3, yet they are exactly the ones that matter most for the
-    night sky background.  They are supplied instead from the extended
+    unreliable in DR3. They are supplied from the extended
     Hipparcos compilation [Anderson2012]_, which ships with ``nsb2``, using
     Johnson V-B colours.
 

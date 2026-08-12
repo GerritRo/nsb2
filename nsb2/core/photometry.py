@@ -1,12 +1,3 @@
-"""Photometric calibration and stellar spectral libraries.
-
-Broadband catalogues give a magnitude and a colour index per star rather than
-a spectrum.  This module turns that pair into a spectrum: a template library
-is reddened over a range of dust column densities, synthetic colours are
-computed for each reddened template, and the relation is inverted to obtain
-the spectrum belonging to an observed colour.
-"""
-
 import logging
 
 import astropy.units as u
@@ -34,10 +25,8 @@ SOLAR_SPECTRUM_URL = (
     "https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/solsys/solar_spec.fits"
 )
 
-#: Default grid of colour excesses E(B-V) used to redden template spectra.
 DEFAULT_EBVS = np.linspace(0, 10, 20)
 
-#: Default total-to-selective extinction ratio of the reddening law.
 DEFAULT_RV = 3.1
 
 
@@ -64,9 +53,7 @@ def synthetic_magnitude(
     -----
     The integrand is photon-weighted (an extra factor of wavelength), matching
     the convention of the zeropoint returned by
-    :attr:`nsb2.core.spectral.Bandpass.vegazero`.  Because both integrals
-    carry the wavelength unit, the result does not depend on whether ``wvl``
-    is given in nanometres or angstrom.
+    :attr:`nsb2.core.spectral.Bandpass.vegazero`.
     """
     integrand = flx * bandpass(wvl) * wvl
     ratio = integrate_wavelength(integrand, wvl) / bandpass.vegazero
@@ -119,8 +106,7 @@ def create_color_grid(
     -----
     Colours outside the range spanned by a given template produce ``nan``,
     which propagates to ``nan`` spectra for stars that no template can
-    reproduce.  Callers are expected to handle those, e.g. via
-    :func:`numpy.nansum`.
+    reproduce.
     """
     if EBVs is None:
         EBVs = DEFAULT_EBVS
@@ -157,9 +143,6 @@ def create_color_grid(
 def PicklesTRDSAtlas1998() -> SpectralGrid:
     """Load the Pickles stellar spectral atlas [Pickles1998]_.
 
-    The atlas holds 131 flux-calibrated template spectra covering all
-    spectral types and luminosity classes, and ships with ``nsb2``.
-
     Returns
     -------
     nsb2.core.spectral.SpectralGrid
@@ -175,9 +158,6 @@ def PicklesTRDSAtlas1998() -> SpectralGrid:
 
 def SolarSpectrumRieke2008() -> tuple[u.Quantity, u.Quantity]:
     """Load the solar reference spectrum of [Rieke2008]_.
-
-    Used as the illuminating spectrum for reflecting bodies -- the Moon and
-    the interplanetary dust responsible for zodiacal light.
 
     Returns
     -------

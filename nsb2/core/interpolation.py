@@ -1,5 +1,3 @@
-"""Unit- and dynamic-range-aware grid interpolation."""
-
 import logging
 
 import numpy as np
@@ -12,7 +10,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-#: Decades of dynamic range above which values are interpolated in log space.
 DEFAULT_LOG_THRESHOLD = 3
 
 
@@ -22,8 +19,7 @@ class UnitRegularGridInterpolator:
     Wraps :class:`scipy.interpolate.RegularGridInterpolator` with two
     additions needed by the lookup tables in :mod:`nsb2.core.solver`.  Units
     are stripped before interpolation and reattached afterwards, and values
-    spanning many decades -- as extinguished rates do between zenith and the
-    horizon -- are interpolated in log space, where they are close to linear.
+    spanning many decades are interpolated in log space.
 
     Parameters
     ----------

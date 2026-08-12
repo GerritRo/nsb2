@@ -134,6 +134,8 @@ ignore = [
     "D203",  # incompatible with D211
     "D213",  # incompatible with D212
     "E501",  # line length is enforced by the formatter
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
 ]
 fixable = ["ALL"]
 unfixable = []
@@ -142,27 +144,13 @@ unfixable = []
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-# Tutorial notebooks are prose first: they define throwaway helpers, name
-# things after the physics, and import where the narrative needs it.
 "docs/examples/*" = ["D", "E402", "I", "N", "T20"]
-# Test names and fixtures describe what they provide; a noun phrase reads
-# better than an imperative there, and the class/method names are the docs.
-# N803 lets stubs mirror the argument names of the libraries they stand in
-# for; T201 lets the reference-regeneration entry point report where it wrote.
 "nsb2/*/tests/*" = ["D101", "D102", "D103", "D401", "N803", "T201"]
 "nsb2/conftest.py" = ["D401"]
-# These modules are named after the observatories whose telescopes they model,
-# and the factory functions after the telescopes themselves.
 "nsb2/instrument/CTAO.py" = ["N802", "N999"]
 "nsb2/instrument/HESS.py" = ["N802", "N999"]
-# Loaders are named after the publication they implement, matching the
-# convention used for the reference data files, and E(B-V) is the standard
-# notation for a colour excess.
 "nsb2/core/photometry.py" = ["N802", "N803", "N806"]
-# The SVO Filter Profile Service is a proper noun.
 "nsb2/core/spectral.py" = ["N802"]
-# Upper and lower case zenith angles are distinct quantities in the
-# single-scattering formalism, following the notation of the source papers.
 "nsb2/atmosphere/single_scattering.py" = ["N803", "N806"]
 
 [tool.ruff.lint.isort]
@@ -178,11 +166,7 @@ skip-magic-trailing-comma = false
 minversion = "7"
 testpaths = ["nsb2"]
 python_files = ["test_*.py"]
-# An xfail that starts passing means the underlying bug was fixed and the
-# marker should be removed, so make that a failure rather than a silent pass.
 xfail_strict = true
-# Network-dependent tests are opt-in: a later -m on the command line wins,
-# so `pytest -m remote_data` runs exactly those.
 addopts = [
     "-ra",
     "--strict-config",

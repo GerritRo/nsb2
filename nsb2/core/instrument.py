@@ -1,11 +1,3 @@
-"""Telescope and camera models.
-
-An instrument knows how a photon arriving from a given direction is collected
-into a given pixel, and nothing about where the photon came from.  It is
-responsible for two things: weighting each source by the effective collection
-area of the pixel it lands in, and projecting rates onto the pixel grid.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -33,10 +25,6 @@ logger = logging.getLogger(__name__)
 
 def _min_med_max(arr, axis=-1):
     """Reduce the spectral component axis to its minimum, median and maximum.
-
-    The component axis holds model variants that bracket the uncertainty of a
-    source; collapsing it to these three summary statistics is what lets a
-    prediction be reported as a range.
 
     Parameters
     ----------
@@ -237,17 +225,18 @@ class EffectiveApertureInstrument(Instrument):
 
     The response of each pixel is tabulated as an effective collection area
     over a small grid of offsets from the pointing direction.  This folds the
-    mirror area, the optical transmission, the shadowing of the camera body
-    and the light guide acceptance into a single quantity, which is what
-    ray-tracing simulations of a telescope produce.
+    mirror area, the shadowing of the camera body and the light guide acceptance
+    into a single quantity, which is what ray-tracing simulations produce.
 
     Parameters
     ----------
     response : dict or numpy.lib.npyio.NpzFile
         Mapping with keys ``"x"``, ``"y"`` and ``"values"``.  ``x`` and ``y``
         hold the offset grid of each pixel in radians, shape ``(N_pix, G)``;
-        ``values`` holds the effective area in square metres per steradian,
-        shape ``(N_pix, G, G)``.
+        ``values`` holds the effective area in square metres, shape
+        ``(N_pix, G, G)`` and indexed ``values[pixel, x_index, y_index]``.
+        ``x`` is the offset along longitude and ``y`` the offset along
+        latitude, both measured from the pointing direction.
     bandpass : nsb2.core.spectral.Bandpass
         Wavelength response of the full optical chain.
 
@@ -269,12 +258,12 @@ class EffectiveApertureInstrument(Instrument):
         )
 
         self._fov = (
-            (self._pix_bins[:, 1].min(), self._pix_bins[:, 1].max()),
             (self._pix_bins[:, 0].min(), self._pix_bins[:, 0].max()),
+            (self._pix_bins[:, 1].min(), self._pix_bins[:, 1].max()),
         )
 
-        inner = simpson(vals, x=x[:, np.newaxis, :], axis=-1)
-        self._pix_area_sr = np.asarray(simpson(inner, x=y, axis=-1))
+        inner = simpson(vals, x=y[:, np.newaxis, :], axis=-1)
+        self._pix_area_sr = np.asarray(simpson(inner, x=x, axis=-1))
 
         self._response_values = vals
         self._resp_x0 = x[:, 0]
