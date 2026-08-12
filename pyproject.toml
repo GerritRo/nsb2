@@ -211,7 +211,7 @@ ignore-words-list = "nd,als,ND,aas"
 # -- Commitizen (conventional commits + changelog) --
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.2.0"
 version_files = [
     "nsb2/__init__.py:__version__",
 ]
