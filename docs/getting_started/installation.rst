@@ -26,10 +26,6 @@ single environment without a resolver conflict:
 
    pip install ctapipe git+https://github.com/GerritRo/nsb2.git
 
-Note that ctapipe itself requires **Python 3.12 or later**, which is
-stricter than nsb2's own floor.  A CI job installs both together and runs
-the nsb2 test suite in that environment, so the combination stays working.
-
 Development Installation
 ------------------------
 
@@ -49,10 +45,6 @@ This installs additional development dependencies:
 - ``ruff`` for code linting and formatting
 - ``pre-commit`` for running both automatically before each commit
 - ``commitizen`` for conventional commits
-
-Narrower extras are available if you do not need the whole toolchain:
-``nsb2[tests]`` installs just the test requirements, and ``nsb2[docs]``
-just the documentation ones.
 
 Running the Tests
 -----------------
