@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -32,34 +32,49 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
 requires-python = ">=3.11"
+
+# Bounds are chosen to overlap ctapipe's, so that nsb2 and ctapipe resolve to
+# a common environment: ctapipe pins astropy>=6.1,<9, numpy>=1.26,<3 and
+# scipy~=1.15. The upper bounds guard against the next major release of each
+# dependency, which is where the array and unit protocols nsb2 relies on have
+# historically changed.
 dependencies = [
-    "numpy>=1.22.0,<2.5.0",
-    "scikit-learn>=1.0.0",
-    "scipy>=1.7.0",
-    "astropy>=5.0",
-    "healpy>=1.15.0",
-    "dust_extinction>=1.4",
+    "astropy>=6.1,<9.0.0",
+    "dust_extinction>=1.3",
+    "healpy>=1.16.0",
+    "numpy>=1.26,<3.0.0",
+    "scikit-learn>=1.1,!=1.4.0",
+    "scipy>=1.11,<2.0.0",
 ]
 
 [project.optional-dependencies]
-dev = [
+tests = [
     "pytest>=7.0",
-    "pytest-doctestplus>=0.12",
     "pytest-cov>=4.0",
-    "mypy>=1.0",
-    "ruff>=0.1.0",
-    "commitizen>=3.12.0",
+    "pytest-doctestplus>=0.12",
 ]
 docs = [
-    "sphinx",
     "furo",
+    "myst-nb",
+    "numpydoc",
+    "sphinx",
     "sphinx-automodapi",
     "sphinx-design",
-    "myst-nb",
+]
+dev = [
+    "nsb2[docs,tests]",
+    "commitizen>=3.12.0",
+    "mypy>=1.0",
+    "pre-commit",
+    "ruff>=0.6.0",
+    "jupyter>=1.0",
+    "matplotlib",
+    "ctapipe",
 ]
 
 [project.urls]
@@ -71,16 +86,18 @@ Issues = "https://github.com/GerritRo/nsb2/issues"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["nsb2*"]
-exclude = ["tests*", "examples*"]
 
 [tool.setuptools.package-data]
-nsb2 = ["py.typed", "data/*", "instrument/response/*.npz", "instrument/bandpass/*.dat"]
+nsb2 = ["py.typed", "data/*"]
+"nsb2.instrument" = ["response/*.npz", "bandpass/*.dat"]
+"nsb2.core.tests" = ["resources/*.npz"]
 
 [tool.setuptools.dynamic]
 version = {attr = "nsb2.__version__"}
 
 [tool.mypy]
-python_version = "3.11"
+# No python_version pin: numpy's bundled stubs use syntax that only parses
+# under the interpreter they ship for, so mypy must follow the interpreter.
 warn_return_any = false
 warn_unused_configs = true
 check_untyped_defs = true
@@ -88,28 +105,94 @@ ignore_missing_imports = true
 packages = ["nsb2"]
 follow_imports = "silent"
 
+# Tests deliberately pass wrong types to check that the errors are raised.
+[[tool.mypy.overrides]]
+module = ["nsb2.*.tests.*", "nsb2.conftest"]
+ignore_errors = true
+
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "T10"]
-ignore = ["E501"]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "T10",  # flake8-debugger
+    "T20",  # flake8-print: log, do not print
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "D105",  # magic methods are documented where they are not self-evident
+    "D107",  # __init__ is documented in the class docstring
+    "D203",  # incompatible with D211
+    "D213",  # incompatible with D212
+    "E501",  # line length is enforced by the formatter
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"docs/examples/*" = ["D", "E402", "I", "N", "T20"]
+"nsb2/*/tests/*" = ["D101", "D102", "D103", "D401", "N803", "T201"]
+"nsb2/conftest.py" = ["D401"]
+"nsb2/instrument/CTAO.py" = ["N802", "N999"]
+"nsb2/instrument/HESS.py" = ["N802", "N999"]
+"nsb2/core/photometry.py" = ["N802", "N803", "N806"]
+"nsb2/core/spectral.py" = ["N802"]
+"nsb2/atmosphere/single_scattering.py" = ["N803", "N806"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["nsb2"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+minversion = "7"
+testpaths = ["nsb2"]
 python_files = ["test_*.py"]
-addopts = "-v --tb=short"
+xfail_strict = true
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--doctest-modules",
+    "-m",
+    "not remote_data",
+]
+doctest_plus = "enabled"
+markers = [
+    "remote_data: test requires network access to external data services",
+]
+filterwarnings = [
+    "error::astropy.utils.exceptions.AstropyDeprecationWarning",
+]
 
 [tool.coverage.run]
 omit = [
     "nsb2/__init__*",
     "nsb2/conftest.py",
+    "nsb2/*/tests/*",
     "nsb2/version*",
-    "tests/*",
 ]
 
 [tool.coverage.report]
+fail_under = 90
 exclude_lines = [
     "pragma: no cover",
     "except ImportError",
@@ -117,7 +200,13 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
     "@overload",
+    # Bodies of abstract methods and Protocol members; there is nothing to
+    # execute, but coverage counts them as statements.
+    '^\s*\.\.\.$',
 ]
+
+[tool.codespell]
+ignore-words-list = "nd,als,ND,aas"
 
 # -- Commitizen (conventional commits + changelog) --
 [tool.commitizen]

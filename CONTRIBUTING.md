@@ -11,9 +11,14 @@ git remote add upstream https://github.com/GerritRo/nsb2.git
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
+# Install the git hooks that run ruff and the file checks on every commit
+pre-commit install
+
 # Verify everything works
 pytest
 ```
+
+nsb2 tries to follow the [ctapipe style guide](https://ctapipe.readthedocs.io/en/stable/developer-guide/style-guide.html).
 
 ---
 
@@ -54,36 +59,6 @@ changelogs automatically. Use `cz commit` instead of `git commit`:
 cz commit
 ```
 
-This walks you through an interactive prompt:
-
-```
-? Select the type of change you are committing: (Use arrow keys)
- » fix: A bug fix
-   feat: A new feature
-   docs: Documentation only changes
-   refactor: A code change that neither fixes a bug nor adds a feature
-   perf: A code change that improves performance
-   test: Adding missing or correcting existing tests
-   build: Changes that affect the build system or dependencies
-   ci: Changes to CI configuration files and scripts
-   chore: Other changes that don't modify src or test files
-
-? What is the scope of this change? (press enter to skip)
-  core, emitter, atmosphere, instrument
-
-? Write a short, imperative description of the change:
-  > fix airglow model interpolation at high zenith angles
-
-? Provide additional contextual information (press enter to skip):
-  > The spline extrapolation produced NaN for zenith > 80 degrees
-
-? Is this a BREAKING CHANGE?  No
-? Footer (press enter to skip, e.g. "Closes #42"):
-  > Fixes #12
-```
-
-Result: `fix(core): fix airglow model interpolation at high zenith angles`
-
 You can also write commit messages manually -- the format is:
 
 ```
@@ -91,9 +66,6 @@ You can also write commit messages manually -- the format is:
 ```
 
 Breaking changes use `!` after the type: `feat(core)!: require explicit instrument config`
-
-**Why this matters:** `CHANGELOG.md` is generated directly from these commit
-messages at release time via `cz bump --changelog`.
 
 ---
 
@@ -103,9 +75,10 @@ messages at release time via `cz bump --changelog`.
 - **Target branch** is `dev` (unless it's a hotfix targeting `main`)
 - **PR checklist:**
   - [ ] Tests pass (`pytest`)
-  - [ ] Lint passes (`ruff check nsb2`)
+  - [ ] Lint and formatting pass (`pre-commit run --all-files`)
   - [ ] Types pass (`mypy nsb2`)
-  - [ ] New code has tests
+  - [ ] New code has tests, and bug fixes have a regression test
+  - [ ] New public API has NumPy-style docstrings
 
 ---
 
@@ -114,13 +87,46 @@ messages at release time via `cz bump --changelog`.
 ### Quick reference
 
 ```bash
+pre-commit run --all-files               # Everything CI's lint job runs
 ruff check nsb2                          # Lint
 ruff check --fix nsb2                    # Lint + auto-fix
 ruff format nsb2                         # Format
 mypy nsb2                                # Type check
 pytest                                   # Tests
+pytest -m remote_data                    # Tests that download reference data
 pytest --cov=nsb2 --cov-report=html      # Coverage report
 ```
+
+### Where tests live
+
+Tests sit in a `tests/` subdirectory of the module they cover, as in
+ctapipe:
+
+```
+nsb2/core/tests/test_spectral.py
+nsb2/atmosphere/tests/test_single_scattering.py
+nsb2/emitter/tests/test_airglow.py
+nsb2/instrument/tests/test_bundled_instruments.py
+```
+
+Fixtures shared across subpackages go in `nsb2/conftest.py`. Any test that
+needs the network must be marked `@pytest.mark.remote_data`, so that the
+default `pytest` run stays offline and fast.
+
+### Conventions (as in ctapipe)
+
+- Every public function, class and module carries a
+  [NumPy-style docstring](https://numpydoc.readthedocs.io/en/latest/format.html).
+- Algorithms cite their source, and the citation is collected in
+  `docs/bibliography.rst`. Reference it from the docstring as
+  ``[Author2003]_``.
+- Use `logging` rather than `print()`; library modules define
+  `logger = logging.getLogger(__name__)` at the top of the file. `ruff`
+  fails the build on `print()`.
+- Functions must not modify their arguments — the pipeline stages are meant
+  to be reorderable and parallelisable.
+- Use `astropy.units` for any quantity in a public API whose unit could be
+  ambiguous.
 
 ---
 
@@ -143,8 +149,9 @@ Maintainers only. Uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.
 
 1. Create `release/x.y.z` from `dev`
 2. `cz bump --changelog` to bump version + generate changelog
-3. Run full test suite + doc build
-4. Merge into `main`, tag `vx.y.z`, backmerge into `dev`
+3. Run the full test suite **including** `pytest -m remote_data`.
+4. Build the docs (`cd docs && make html`); warnings are errors
+5. Merge into `main`, tag `vx.y.z`, backmerge into `dev`
 
 ---
 
