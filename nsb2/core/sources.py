@@ -312,6 +312,9 @@ class CatalogSource(Source):
         Spectral coordinates are averaged with brightness weighting, and
         missing ones are replaced by the catalogue mean.
 
+        Uses the HEALPix pixelisation [Gorski2005]_ through healpy
+        [Zonca2019]_; see :ref:`acknowledgements`.
+
         Parameters
         ----------
         nside : int
@@ -611,6 +614,9 @@ class LonLatSource(RadianceSource):
 
 class HEALPixSource(RadianceSource):
     """Diffuse source stored as a HEALPix radiance map.
+
+    Uses the HEALPix pixelisation [Gorski2005]_ through healpy [Zonca2019]_;
+    see :ref:`acknowledgements`.
 
     Parameters
     ----------

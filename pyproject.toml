@@ -206,8 +206,7 @@ exclude_lines = [
 ]
 
 [tool.codespell]
-# "Nd" and friends are numpy.einsum subscript labels, not English words.
-ignore-words-list = "nd,als,ND"
+ignore-words-list = "nd,als,ND,aas"
 
 # -- Commitizen (conventional commits + changelog) --
 [tool.commitizen]

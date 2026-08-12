@@ -175,6 +175,10 @@ class DirectPath(LightPath):
 class ScatteredPath(LightPath):
     """Scattered light: the whole visible sky, scattered into the field of view.
 
+    The hemisphere is sampled on a HEALPix grid [Gorski2005]_ through healpy
+    [Zonca2019]_, so every scattered prediction depends on them; see
+    :ref:`acknowledgements`.
+
     Parameters
     ----------
     solver : nsb2.core.solver.ScatteredSolver, optional

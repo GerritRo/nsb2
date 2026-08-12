@@ -166,6 +166,9 @@ class Bandpass:
     def from_SVO(cls, filter_id: str, cache: bool = True) -> Bandpass:
         """Construct a `Bandpass` from the SVO Filter Profile Service.
 
+        The service [Rodrigo2012]_, [Rodrigo2020]_ asks to be acknowledged in
+        publications; see :ref:`acknowledgements`.
+
         Parameters
         ----------
         filter_id : str

@@ -16,6 +16,7 @@ zodiacal light, moon light and airglow.
 
    about/introduction
    about/features
+   about/acknowledgements
 
 .. toctree::
    :maxdepth: 2

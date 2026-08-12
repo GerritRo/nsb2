@@ -66,6 +66,10 @@ def from_gaia_dr3_catalog() -> CatalogSource:
     individually. Their spectra are inferred from the RP-BP colour index
     against the [Pickles1998]_ template library.
 
+    Uses data from the Gaia mission [GaiaMission2016]_, data release 3
+    [GaiaDR3]_, repackaged as [Roellinghoff2025]_.  Publications using it
+    must carry ESA's acknowledgement; see :ref:`acknowledgements`.
+
     Returns
     -------
     nsb2.core.sources.CatalogSource
@@ -100,8 +104,12 @@ def from_gaia_dr3_map() -> HEALPixSource:
     """Build a diffuse map from the faint half of Gaia DR3.
 
     Stars fainter than G = :data:`GAIA_SPLIT_MAGNITUDE` are pre-binned into a
-    HEALPix map of integrated magnitude and their mean colour and treated as
-    diffuse emission for computational reasons.
+    HEALPix [Gorski2005]_ map of integrated magnitude and their mean colour
+    and treated as diffuse emission for computational reasons.
+
+    Uses data from the Gaia mission [GaiaMission2016]_, data release 3
+    [GaiaDR3]_, repackaged as [Roellinghoff2025]_.  Publications using it
+    must carry ESA's acknowledgement; see :ref:`acknowledgements`.
 
     Returns
     -------
