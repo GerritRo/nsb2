@@ -64,3 +64,6 @@ dmypy.json
 
 # coverage
 coverage.xml
+
+# Sphinx automodapi writes one generated stub per documented object here
+docs/api/nsb2.*.*.rst

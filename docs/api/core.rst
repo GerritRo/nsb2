@@ -5,9 +5,8 @@ The core subpackage contains the fundamental building blocks of nsb2:
 spectral grids, atmospheric models, emitter interfaces, instrument
 responses, and the simulation pipeline.
 
-.. automodapi:: nsb2.core
-   :no-heading:
-   :no-inheritance-diagram:
+Everything documented below is also re-exported from ``nsb2.core`` itself,
+so ``from nsb2.core import Pipeline`` works as well as the full path.
 
 .. automodapi:: nsb2.core.spectral
    :no-heading:
@@ -38,5 +37,17 @@ responses, and the simulation pipeline.
    :no-inheritance-diagram:
 
 .. automodapi:: nsb2.core.lightpath
+   :no-heading:
+   :no-inheritance-diagram:
+
+.. automodapi:: nsb2.core.solver
+   :no-heading:
+   :no-inheritance-diagram:
+
+.. automodapi:: nsb2.core.dtypes
+   :no-heading:
+   :no-inheritance-diagram:
+
+.. automodapi:: nsb2.core.interpolation
    :no-heading:
    :no-inheritance-diagram:

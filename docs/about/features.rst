@@ -35,7 +35,7 @@ Pipeline Architecture
 
 - **Direct and scattered light** - Support for both direct and scattered
   light paths through the atmosphere, with flexible solvers.
-- **Traceable by source** - Visualize contributions from each component 
+- **Traceable by source** - Visualize contributions from each component
   independently.
 - **Efficient compilation** - Precomputations such as LUT builds or balltree
   creating is done in model compile step.

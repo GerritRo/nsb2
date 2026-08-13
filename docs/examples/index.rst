@@ -10,3 +10,4 @@ background with different IACTs.
    HESSI_Tutorial
    LST_Tutorial
    MST_Tutorial
+   SST_Tutorial

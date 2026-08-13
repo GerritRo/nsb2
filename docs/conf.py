@@ -1,7 +1,8 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+For the full list of built-in configuration values, see
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -64,9 +65,10 @@ autodoc_typehints = "none"
 autodoc_class_signature = "separated"
 autodoc_member_order = "bysource"
 
+# Deliberately does not force `members`/`undoc-members`: automodapi already
+# generates a stub page per object, and documenting members inline as well
+# makes every object appear twice.
 autodoc_default_options = {
-    "members": True,
-    "undoc-members": True,
     "show-inheritance": True,
 }
 
@@ -106,7 +108,10 @@ napoleon_include_special_with_doc = True
 napoleon_use_admonition_for_examples = True
 napoleon_use_admonition_for_notes = True
 napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
+# Render Attributes sections as :ivar: fields inside the class body. Without
+# this, numpydoc emits standalone attribute directives that collide with the
+# ones autodoc generates for dataclass fields.
+napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_preprocess_types = False
