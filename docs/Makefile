@@ -3,7 +3,9 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+# Warnings are errors, as in ctapipe. --keep-going reports every warning in
+# one run rather than stopping at the first.
+SPHINXOPTS    ?= -W --keep-going --color
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build

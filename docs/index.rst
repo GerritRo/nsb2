@@ -16,6 +16,7 @@ zodiacal light, moon light and airglow.
 
    about/introduction
    about/features
+   about/acknowledgements
 
 .. toctree::
    :maxdepth: 2
@@ -35,6 +36,12 @@ zodiacal light, moon light and airglow.
    :caption: API Reference
 
    api/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: References
+
+   bibliography
 
 Indices and Tables
 ------------------

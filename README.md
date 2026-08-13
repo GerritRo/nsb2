@@ -81,3 +81,30 @@ Please also cite the original NSB paper using nsb2:
 ```
 
 Please also cite the origin of all telescope, atmospheric, and emission models you use in your work.
+
+## Acknowledgements
+
+If you used the Gaia star catalogue or sky map, include:
+
+> This work presents results from the European Space Agency (ESA) space mission Gaia. Gaia
+> data are being processed by the Gaia Data Processing and Analysis Consortium (DPAC).
+> Funding for the DPAC is provided by national institutions, in particular the institutions
+> participating in the Gaia MultiLateral Agreement (MLA). The Gaia mission website is
+> https://www.cosmos.esa.int/gaia. The Gaia archive website is https://archives.esac.esa.int/gaia.
+
+Any prediction involving a scattered light path, or a catalogue binned to a sky map, uses
+[HEALPix](https://healpix.sourceforge.net) via healpy:
+
+> Some of the results in this paper have been derived using the healpy and HEALPix package.
+
+If you use a Bandpass via the SVO filter service, you should include:
+
+> This research has made use of the SVO Filter Profile Service
+> (http://svo2.cab.inta-csic.es/theory/fps/) supported from the Spanish MINECO through grant
+> AYA2017-84089 and described in
+> [Rodrigo et al. (2012)](https://ui.adsabs.harvard.edu/abs/2012ivoa.rept.1015R/abstract) and
+> [Rodrigo et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020sea..confE.182R/abstract).
+
+
+See the [acknowledgements page](https://gerritro.github.io/nsb2/about/acknowledgements.html)
+for what to cite alongside each, and for the reference data behind the individual emission models.
