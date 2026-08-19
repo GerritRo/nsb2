@@ -5,7 +5,7 @@ from nsb2.core.spectral import Bandpass
 
 from . import BANDPASS_PATH, RESPONSE_PATH
 
-__all__ = ["SST", "LST1North", "MSTNorth"]
+__all__ = ["SST", "LST1North", "MSTNorth", "MSTSouth"]
 
 
 def LST1North() -> EffectiveApertureInstrument:
@@ -34,7 +34,21 @@ def MSTNorth() -> EffectiveApertureInstrument:
     return EffectiveApertureInstrument(response, bandpass)
 
 
-def SST():
+def MSTSouth() -> EffectiveApertureInstrument:
+    """Build a model of a southern Medium-Sized Telescope.
+
+    Returns
+    -------
+    nsb2.core.instrument.EffectiveApertureInstrument
+        The telescope, with its bundled effective aperture map and passband.
+    """
+    response = np.load(RESPONSE_PATH / "MST_South_like.npz")
+    bandpass = Bandpass.from_csv(BANDPASS_PATH / "MST_South_like.dat")
+    return EffectiveApertureInstrument(response, bandpass)
+
+
+
+def SST() -> EffectiveApertureInstrument:
     """Build a model of a Small Size Telescope for CTAO.
 
     Returns
