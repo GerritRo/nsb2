@@ -10,4 +10,7 @@ background with different IACTs.
    HESSI_Tutorial
    LST_Tutorial
    MST_Tutorial
+   Custom_Telescope_Tutorial
+   Custom_Source_Tutorial
+   NSB_Timeseries_Tutorial
    SST_Tutorial
